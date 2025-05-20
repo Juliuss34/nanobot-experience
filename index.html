@@ -1,5 +1,26 @@
 <!DOCTYPE html>
 <!--
+Version 7 - Renforcement de la robustesse et élimination des NaN:
+- Protection contre les NaN dans toutes les fonctions de calcul principales
+- Amélioration de la gestion des sauvegardes/chargements corrompus
+- Fusion plus sécurisée des données lors du chargement
+- Renforcement de toutes les conditions d'évaluation 
+- Amélioration de la gestion des erreurs dans les effets de jalons et succès
+- Prévention des valeurs négatives ou NaN dans les multiplicateurs et valeurs de base
+- Mise en place de limites sur les valeurs pour éviter les débordements
+- Mise à jour de la boucle de jeu principale pour plus de stabilité
+- Amélioration de la fonction applyTheme avec des vérifications supplémentaires
+
+Version 6 - Corrections des bugs d'améliorations:
+- Harmonisation des définitions des producteurs entre game et getDefaultGameState()
+- Renforcement des conditions des améliorations pour éviter les erreurs de référence
+- Ajout de recherche de producteurs par ID au lieu de se fier aux indices
+- Ajout de gestion d'erreurs robuste pour les fonctions requirement et effect
+- Amélioration des logs de diagnostic pour le débogage
+- Vérifications supplémentaires dans les fonctions d'achat d'améliorations
+- Protection contre les fonctions manquantes avec des fallbacks
+- Vérification plus robuste des références potentiellement nulles/undefined
+
 Version 5 - Corrections des bugs de chargement et de nouvelle partie:
 - Ajout des fonctions condition() manquantes pour les achievements
 - Amélioration de la copie profonde dans getDefaultGameState()
@@ -12,7 +33,7 @@ Version 5 - Corrections des bugs de chargement et de nouvelle partie:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nano Bot Experience v5</title>
+    <title>Nano Bot Experience v7</title>
     <style>
 /* Style amélioré pour Nano Bot Experience */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
@@ -1434,21 +1455,98 @@ let game = {
         { id: 'upgrade1', name: 'Protocole d\'auto-réplication', description: 'Double la valeur de vos clics', cost: 50, purchased: false, 
           effect: () => { game.clickValue *= 2; }, icon: "hand-pointer" },
         { id: 'upgrade2', name: 'Nano-processeurs avancés', description: 'Double la production des Nano-Assembleurs', cost: 200, purchased: false, 
-          effect: () => { multiplyProducerProduction(0, 2); }, requirement: () => game.producers[0].count >= 10, icon: "microchip" },
+          effect: () => { 
+              // Recherche du producteur par ID pour plus de robustesse
+              const producerIndex = game.producers.findIndex(p => p.id === 'producer1');
+              if (producerIndex !== -1) {
+                  multiplyProducerProduction(producerIndex, 2);
+              } else {
+                  console.error("Producteur 'Nano-Assembleur' non trouvé pour l'amélioration");
+              }
+          }, 
+          requirement: () => {
+              // Recherche du producteur par ID pour plus de robustesse
+              const producer = game.producers.find(p => p.id === 'producer1');
+              return producer && producer.count >= 10;
+          }, 
+          icon: "microchip" 
+        },
         { id: 'upgrade3', name: 'Algorithmes adaptatifs', description: 'Triple la production des Réplicateurs Moléculaires', cost: 1000, purchased: false, 
-          effect: () => { multiplyProducerProduction(1, 3); }, requirement: () => game.producers[1].count >= 10, icon: "brain" },
+          effect: () => {
+              const producerIndex = game.producers.findIndex(p => p.id === 'producer2');
+              if (producerIndex !== -1) {
+                  multiplyProducerProduction(producerIndex, 3);
+              } else {
+                  console.error("Producteur 'Réplicateur Moléculaire' non trouvé pour l'amélioration");
+              }
+          },
+          requirement: () => {
+              const producer = game.producers.find(p => p.id === 'producer2');
+              return producer && producer.count >= 10;
+          },
+          icon: "brain" 
+        },
         { id: 'upgrade4', name: 'Manipulation atomique', description: 'Double la production de tous les producteurs', cost: 5000, purchased: false, 
-          effect: () => { applyProductionMultiplier(2); }, requirement: () => game.totalNanobots >= 2000, icon: "atom" },
+          effect: () => { applyProductionMultiplier(2); }, 
+          requirement: () => game.totalNanobots >= 2000, 
+          icon: "atom" 
+        },
         { id: 'upgrade5', name: 'Compression moléculaire', description: 'Tous les coûts -10%', cost: 20000, purchased: false, 
-          effect: () => { applyCostReduction(0.9); }, requirement: () => game.expansion.currentLevel >= 1, icon: "compress" },
+          effect: () => { applyCostReduction(0.9); }, 
+          requirement: () => game.expansion && game.expansion.currentLevel >= 1, 
+          icon: "compress" 
+        },
         { id: 'upgrade6', name: 'Intelligence collective', description: 'Production +50% par zone débloquée', cost: 100000, purchased: false, 
-          effect: () => { recalculateCollectiveIntelligence(); }, requirement: () => game.expansion.currentLevel >= 2, icon: "network-wired" },
+          effect: () => { 
+              if (typeof recalculateCollectiveIntelligence === 'function') {
+                  recalculateCollectiveIntelligence();
+              } else {
+                  // Fallback si la fonction n'existe pas
+                  applyProductionMultiplier(1.5);
+              }
+          }, 
+          requirement: () => game.expansion && game.expansion.currentLevel >= 2, 
+          icon: "network-wired" 
+        },
         { id: 'upgrade7', name: 'Manipulation quantique', description: 'Quadruple la production des Usines Quantiques', cost: 500000, purchased: false, 
-          effect: () => { multiplyProducerProduction(2, 4); }, requirement: () => game.producers[2].count >= 15, icon: "dice-d20" },
+          effect: () => {
+              const producerIndex = game.producers.findIndex(p => p.id === 'producer3');
+              if (producerIndex !== -1) {
+                  multiplyProducerProduction(producerIndex, 4);
+              } else {
+                  console.error("Producteur 'Usine Quantique' non trouvé pour l'amélioration");
+              }
+          },
+          requirement: () => {
+              const producer = game.producers.find(p => p.id === 'producer3');
+              return producer && producer.count >= 15;
+          },
+          icon: "dice-d20" 
+        },
         { id: 'upgrade8', name: 'Matière noire', description: 'Production x5 pendant 30 secondes', cost: 2000000, purchased: false, 
-          effect: () => { applyTemporaryBoost(5, 30); }, requirement: () => game.expansion.currentLevel >= 3, icon: "star-half-alt" },
+          effect: () => { 
+              if (typeof applyTemporaryBoost === 'function') {
+                  applyTemporaryBoost(5, 30);
+              } else {
+                  // Fallback si la fonction n'existe pas
+                  applyProductionMultiplier(5);
+              }
+          }, 
+          requirement: () => game.expansion && game.expansion.currentLevel >= 3, 
+          icon: "star-half-alt" 
+        },
         { id: 'upgrade9', name: 'Singularité technologique', description: 'Production x10 mais consomme 1% de nanobots/sec', cost: 50000000, purchased: false, 
-          effect: () => { applySingularity(); }, requirement: () => game.expansion.currentLevel >= 5, icon: "bullseye" }
+          effect: () => { 
+              if (typeof applySingularity === 'function') {
+                  applySingularity();
+              } else {
+                  // Fallback si la fonction n'existe pas
+                  applyProductionMultiplier(10);
+              }
+          }, 
+          requirement: () => game.expansion && game.expansion.currentLevel >= 5, 
+          icon: "bullseye" 
+        }
     ],
     
     // Prestige (évolution nanobotique)
@@ -1611,31 +1709,73 @@ function formatTime(timestamp) {
 
 // Fonction pour calculer la production par seconde
 function calculateProduction() {
-    let production = 0;
-    
-    game.producers.forEach(producer => {
-        production += producer.count * producer.production;
-    });
-    
-    // Appliquer multiplicateur de prestige
-    production *= game.prestige.multiplier;
-    
-    // Appliquer boosts temporaires
-    game.temporaryBoosts.forEach(boost => {
-        production *= boost.multiplier;
-    });
-    
-    // Appliquer le bonus des succès (+1% par succès débloqué)
-    if (game.achievementBonus > 0) {
-        production *= (1 + (game.achievementBonus * 0.01));
+    // Protection contre les NaN
+    try {
+        let production = 0;
+        
+        // Vérifier que game.producers existe et est un tableau
+        if (Array.isArray(game.producers)) {
+            game.producers.forEach(producer => {
+                // Vérifier que les valeurs sont numériques
+                const count = Number(producer.count) || 0;
+                const prodValue = Number(producer.production) || 0;
+                production += count * prodValue;
+            });
+        }
+        
+        // Appliquer multiplicateur de prestige avec vérification
+        const prestigeMultiplier = Number(game.prestige?.multiplier) || 1;
+        production *= prestigeMultiplier;
+        
+        // Appliquer boosts temporaires
+        if (Array.isArray(game.temporaryBoosts)) {
+            game.temporaryBoosts.forEach(boost => {
+                const boostMultiplier = Number(boost.multiplier) || 1;
+                production *= boostMultiplier;
+            });
+        }
+        
+        // Appliquer le bonus des succès (+1% par succès débloqué)
+        const achievementBonus = Number(game.achievementBonus) || 0;
+        if (achievementBonus > 0) {
+            production *= (1 + (achievementBonus * 0.01));
+        }
+        
+        // Protection finale contre NaN ou valeurs négatives
+        if (isNaN(production) || production < 0) {
+            console.error("Production invalide calculée:", production);
+            return 0;
+        }
+        
+        return production;
+    } catch (error) {
+        console.error("Erreur dans le calcul de production:", error);
+        return 0;
     }
-    
-    return production;
 }
 
 // Fonction pour calculer le coût d'un producteur
 function getProducerCost(producer) {
-    return Math.floor(producer.baseCost * Math.pow(producer.costMultiplier, producer.count));
+    try {
+        // Vérification que les valeurs sont numériques
+        const baseCost = Number(producer.baseCost) || 10; // Valeur par défaut
+        const costMultiplier = Number(producer.costMultiplier) || 1.1; // Valeur par défaut
+        const count = Number(producer.count) || 0;
+        
+        // Calcul du coût avec une limitation pour éviter des valeurs extrêmes
+        const cost = Math.floor(baseCost * Math.pow(costMultiplier, count));
+        
+        // Protection contre NaN, infini ou valeurs négatives
+        if (isNaN(cost) || !isFinite(cost) || cost <= 0) {
+            console.error("Coût de producteur invalide calculé:", cost);
+            return baseCost; // Revenir à la base par défaut
+        }
+        
+        return cost;
+    } catch (error) {
+        console.error("Erreur dans le calcul du coût du producteur:", error);
+        return producer.baseCost || 10; // Valeur par défaut
+    }
 }
 
 /**
@@ -1752,13 +1892,16 @@ function getDefaultGameState() {
             timePlayed: 0
         },
         producers: [
-            { id: 'nanofactory', name: 'Nanofactory', description: 'Produit des nanobots de façon passive', count: 0, baseCost: 10, production: 0.1, icon: 'fas fa-industry' },
-            { id: 'nanoassembler', name: 'Nano-assembleur', description: 'Construit des composants avancés', count: 0, baseCost: 100, production: 1, icon: 'fas fa-cogs' },
-            { id: 'nanoreplicator', name: 'Nanoréplicateur', description: 'Clone automatiquement des nanobots', count: 0, baseCost: 1100, production: 10, icon: 'fas fa-clone' },
-            { id: 'quantumcompiler', name: 'Compilateur Quantique', description: 'Traduit des algorithmes en nanobots', count: 0, baseCost: 12000, production: 100, icon: 'fas fa-microchip' },
-            { id: 'hivenetwork', name: 'Réseau Ruche', description: 'Coordonne les essaims de nanobots', count: 0, baseCost: 130000, production: 1000, icon: 'fas fa-network-wired' },
-            { id: 'nanovortex', name: 'Nano-vortex', description: 'Crée des nanobots à partir d\'énergie pure', count: 0, baseCost: 1400000, production: 10000, icon: 'fas fa-atom' },
-            { id: 'nanodimension', name: 'Nano-dimension', description: 'Ouvre un portail vers une dimension de nanobots', count: 0, baseCost: 20000000, production: 100000, icon: 'fas fa-door-open' }
+            { id: 'producer1', name: 'Nano-Assembleur', count: 0, baseCost: 10, costMultiplier: 1.1, production: 0.1, unlocked: true, 
+              desc: "Assemble des nanobots individuellement", icon: "microchip" },
+            { id: 'producer2', name: 'Réplicateur Moléculaire', count: 0, baseCost: 100, costMultiplier: 1.12, production: 1, unlocked: false, 
+              desc: "Réplique les nanobots au niveau moléculaire", icon: "code-branch" },
+            { id: 'producer3', name: 'Usine Quantique', count: 0, baseCost: 1500, costMultiplier: 1.15, production: 10, unlocked: false, 
+              desc: "Utilise les fluctuations quantiques pour générer des nanobots", icon: "atom" },
+            { id: 'producer4', name: 'Matrice Stellaire', count: 0, baseCost: 20000, costMultiplier: 1.17, production: 100, unlocked: false, 
+              desc: "Convertit l'énergie stellaire en nanobots", icon: "sun" },
+            { id: 'producer5', name: 'Condensateur Galactique', count: 0, baseCost: 500000, costMultiplier: 1.18, production: 1000, unlocked: false, 
+              desc: "Condense la matière interstellaire en nanobots", icon: "galaxy" }
         ],
         prestige: {
             unlocked: false,
@@ -1875,29 +2018,104 @@ function getDefaultGameState() {
 
 // Fonction pour calculer les points de prestige à gagner
 function calculatePrestigeGain() {
-    // Formule: racine carrée de (nanobots totaux / 1e10)
-    return Math.floor(Math.sqrt(game.totalNanobots / 1e10));
+    try {
+        // Vérifier que totalNanobots est un nombre valide
+        const totalNanobots = Number(game.totalNanobots) || 0;
+        
+        // Protection contre les valeurs négatives
+        if (totalNanobots <= 0) return 0;
+        
+        // Formule: racine carrée de (nanobots totaux / 1e10)
+        const gain = Math.floor(Math.sqrt(totalNanobots / 1e10));
+        
+        // S'assurer que le gain est un nombre positif ou nul
+        return (isNaN(gain) || gain < 0) ? 0 : gain;
+    } catch (error) {
+        console.error("Erreur dans le calcul du gain de prestige:", error);
+        return 0;
+    }
 }
 
 // Fonction pour appliquer un multiplicateur à la production
 function applyProductionMultiplier(multiplier) {
-    game.producers.forEach(producer => {
-        producer.production *= multiplier;
-    });
+    try {
+        // Vérifier que le multiplicateur est un nombre valide et positif
+        const multValue = Number(multiplier);
+        if (isNaN(multValue) || multValue <= 0) {
+            console.error("Multiplicateur de production invalide:", multiplier);
+            return;
+        }
+        
+        // Appliquer le multiplicateur à tous les producteurs
+        if (Array.isArray(game.producers)) {
+            game.producers.forEach(producer => {
+                producer.production = Number(producer.production) || 0;
+                producer.production *= multValue;
+                
+                // Protection contre NaN ou valeurs négatives
+                if (isNaN(producer.production) || producer.production < 0) {
+                    console.warn(`Production invalide pour ${producer.name}, réinitialisation`);
+                    producer.production = 0.1; // Valeur par défaut
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'application du multiplicateur de production:", error);
+    }
 }
 
 // Fonction pour multiplier la production d'un producteur spécifique
 function multiplyProducerProduction(index, multiplier) {
-    if (index >= 0 && index < game.producers.length) {
-        game.producers[index].production *= multiplier;
+    try {
+        // Vérifier que l'index et le multiplicateur sont valides
+        const multValue = Number(multiplier);
+        if (isNaN(multValue) || multValue <= 0) {
+            console.error("Multiplicateur de production invalide:", multiplier);
+            return;
+        }
+        
+        if (Array.isArray(game.producers) && index >= 0 && index < game.producers.length) {
+            const producer = game.producers[index];
+            producer.production = Number(producer.production) || 0;
+            producer.production *= multValue;
+            
+            // Protection contre NaN ou valeurs négatives
+            if (isNaN(producer.production) || producer.production < 0) {
+                console.warn(`Production invalide pour le producteur à l'index ${index}, réinitialisation`);
+                producer.production = 0.1 * Math.pow(10, index); // Valeur par défaut basée sur l'index
+            }
+        }
+    } catch (error) {
+        console.error("Erreur lors de la multiplication de la production d'un producteur:", error);
     }
 }
 
 // Fonction pour appliquer une réduction de coût
 function applyCostReduction(factor) {
-    game.producers.forEach(producer => {
-        producer.costMultiplier = producer.costMultiplier * factor + (1 - factor);
-    });
+    try {
+        // Vérifier que le facteur est un nombre valide et positif
+        const factorValue = Number(factor);
+        if (isNaN(factorValue) || factorValue <= 0 || factorValue > 1) {
+            console.error("Facteur de réduction de coût invalide:", factor);
+            return;
+        }
+        
+        if (Array.isArray(game.producers)) {
+            game.producers.forEach(producer => {
+                // Assurez-vous que costMultiplier est un nombre
+                producer.costMultiplier = Number(producer.costMultiplier) || 1.1;
+                producer.costMultiplier = producer.costMultiplier * factorValue + (1 - factorValue);
+                
+                // Protection contre NaN ou valeurs trop basses/hautes
+                if (isNaN(producer.costMultiplier) || producer.costMultiplier < 1.01) {
+                    console.warn(`Multiplicateur de coût invalide pour ${producer.name}, réinitialisation`);
+                    producer.costMultiplier = 1.1; // Valeur par défaut
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Erreur lors de l'application de la réduction de coût:", error);
+    }
 }
 
 // Fonction pour déverrouiller un producteur
@@ -1937,66 +2155,156 @@ function applySingularity() {
 
 // Fonction pour vérifier et débloquer des jalons
 function checkMilestones() {
-    let updated = false;
-    
-    game.expansion.milestones.forEach(milestone => {
-        if (!milestone.unlocked && game.totalNanobots >= milestone.nanobotReq) {
-            milestone.unlocked = true;
-            if (milestone.effect) {
-                milestone.effect();
-            }
-            updated = true;
-            
-            // Notification de déblocage
-            createNotification(`Jalon débloqué: ${milestone.name}`);
+    try {
+        let updated = false;
+        
+        // Vérifier que l'expansion et ses jalons existent
+        if (!game.expansion || !Array.isArray(game.expansion.milestones)) {
+            console.error("Structure d'expansion invalide lors de la vérification des jalons");
+            return false;
         }
-    });
-    
-    // Mettre à jour le niveau d'expansion
-    updateExpansionLevel();
-    
-    return updated;
+        
+        // Vérifier les jalons un par un
+        game.expansion.milestones.forEach(milestone => {
+            if (!milestone || typeof milestone !== 'object') return;
+            
+            // Vérifier si le jalon est déverrouillable
+            if (!milestone.unlocked && 
+                typeof milestone.nanobotReq === 'number' && 
+                game.totalNanobots >= milestone.nanobotReq) {
+                
+                milestone.unlocked = true;
+                updated = true;
+                
+                // Appliquer l'effet du jalon s'il existe
+                if (typeof milestone.effect === 'function') {
+                    try {
+                        milestone.effect();
+                    } catch (effectError) {
+                        console.error(`Erreur lors de l'application de l'effet du jalon ${milestone.name}:`, effectError);
+                    }
+                }
+                
+                // Notification de déblocage
+                try {
+                    createNotification(`Jalon débloqué: ${milestone.name}`);
+                } catch (notifError) {
+                    console.error("Erreur lors de la création de notification:", notifError);
+                }
+            }
+        });
+        
+        // Mettre à jour le niveau d'expansion
+        try {
+            updateExpansionLevel();
+        } catch (expansionError) {
+            console.error("Erreur lors de la mise à jour du niveau d'expansion:", expansionError);
+        }
+        
+        return updated;
+    } catch (error) {
+        console.error("Erreur lors de la vérification des jalons:", error);
+        return false;
+    }
 }
 
 // Fonction pour mettre à jour le niveau d'expansion
 function updateExpansionLevel() {
-    const unlockedMilestones = game.expansion.milestones.filter(m => m.unlocked).length;
-    
-    // Chaque groupe de 3 jalons débloque un nouveau niveau d'expansion
-    const newLevel = Math.floor(unlockedMilestones / 3);
-    
-    if (newLevel > game.expansion.currentLevel) {
-        game.expansion.currentLevel = newLevel;
-        elements.expansionLevel.textContent = game.expansion.levelNames[newLevel];
-        
-        // Si le niveau est >= 2, déverrouiller le prestige
-        if (newLevel >= 2 && !game.prestige.unlocked) {
-            game.prestige.unlocked = true;
-            document.getElementById('prestige-section').style.display = 'block';
+    try {
+        // Vérifier que la structure d'expansion est valide
+        if (!game.expansion || !Array.isArray(game.expansion.milestones) || 
+            !Array.isArray(game.expansion.levelNames)) {
+            console.error("Structure d'expansion invalide");
+            return;
         }
         
-        // Notification de niveau
-        createNotification(`Expansion atteinte: ${game.expansion.levelNames[newLevel]}`);
-    }
-    
-    // Calculer la progression vers le prochain niveau
-    if (newLevel < game.expansion.levelNames.length - 1) {
-        const currentThreshold = Math.pow(10, 3 + (newLevel * 3)); // 1e3, 1e6, 1e9, etc.
-        const nextThreshold = Math.pow(10, 3 + ((newLevel + 1) * 3));
+        // Compter les jalons débloqués
+        const unlockedMilestones = game.expansion.milestones.filter(m => m && m.unlocked).length;
         
-        const progress = (Math.log10(Math.max(game.totalNanobots, 1)) - Math.log10(currentThreshold)) / 
-                        (Math.log10(nextThreshold) - Math.log10(currentThreshold));
+        // Chaque groupe de 3 jalons débloque un nouveau niveau d'expansion
+        const newLevel = Math.floor(unlockedMilestones / 3);
         
-        const clampedProgress = Math.min(Math.max(progress, 0), 1);
+        // Limiter le niveau au nombre de noms disponibles
+        const safeNewLevel = Math.min(newLevel, game.expansion.levelNames.length - 1);
         
-        game.expansion.progressToNext = clampedProgress;
-        elements.expansionProgress.style.width = `${clampedProgress * 100}%`;
-        elements.expansionPercent.textContent = Math.floor(clampedProgress * 100);
-    } else {
-        // Niveau maximum atteint
-        game.expansion.progressToNext = 1;
-        elements.expansionProgress.style.width = `100%`;
-        elements.expansionPercent.textContent = 100;
+        if (safeNewLevel > game.expansion.currentLevel) {
+            game.expansion.currentLevel = safeNewLevel;
+            
+            // Mettre à jour l'affichage si l'élément existe
+            if (elements.expansionLevel) {
+                const levelName = game.expansion.levelNames[safeNewLevel] || "Niveau maximum";
+                elements.expansionLevel.textContent = levelName;
+            }
+            
+            // Si le niveau est >= 2, déverrouiller le prestige
+            if (safeNewLevel >= 2 && game.prestige && !game.prestige.unlocked) {
+                game.prestige.unlocked = true;
+                
+                // Vérifier si l'élément existe avant de modifier son style
+                const prestigeSection = document.getElementById('prestige-section');
+                if (prestigeSection) {
+                    prestigeSection.style.display = 'block';
+                }
+            }
+            
+            // Notification de niveau
+            try {
+                const levelName = game.expansion.levelNames[safeNewLevel] || "Niveau maximum";
+                createNotification(`Expansion atteinte: ${levelName}`);
+            } catch (notifError) {
+                console.error("Erreur lors de la création de notification d'expansion:", notifError);
+            }
+        }
+        
+        // Calculer la progression vers le prochain niveau
+        try {
+            if (safeNewLevel < game.expansion.levelNames.length - 1) {
+                // Valeurs par défaut sécurisées
+                const totalNanobots = Number(game.totalNanobots) || 0;
+                
+                // Seuils pour le niveau actuel et le suivant
+                const currentThreshold = Math.pow(10, 3 + (safeNewLevel * 3)); // 1e3, 1e6, 1e9, etc.
+                const nextThreshold = Math.pow(10, 3 + ((safeNewLevel + 1) * 3));
+                
+                // Calcul de la progression logarithmique
+                const progress = (Math.log10(Math.max(totalNanobots, 1)) - Math.log10(currentThreshold)) / 
+                                (Math.log10(nextThreshold) - Math.log10(currentThreshold));
+                
+                // S'assurer que la progression est entre 0 et 1
+                const clampedProgress = Math.min(Math.max(progress, 0), 1);
+                
+                // Vérifier que la valeur n'est pas NaN ou Infinity
+                game.expansion.progressToNext = !isNaN(clampedProgress) && isFinite(clampedProgress) 
+                    ? clampedProgress : 0;
+                
+                // Mettre à jour l'interface si les éléments existent
+                if (elements.expansionProgress) {
+                    elements.expansionProgress.style.width = `${game.expansion.progressToNext * 100}%`;
+                }
+                if (elements.expansionPercent) {
+                    elements.expansionPercent.textContent = Math.floor(game.expansion.progressToNext * 100);
+                }
+            } else {
+                // Niveau maximum atteint
+                game.expansion.progressToNext = 1;
+                
+                if (elements.expansionProgress) {
+                    elements.expansionProgress.style.width = '100%';
+                }
+                if (elements.expansionPercent) {
+                    elements.expansionPercent.textContent = '100';
+                }
+            }
+        } catch (progressError) {
+            console.error("Erreur lors du calcul de la progression d'expansion:", progressError);
+            
+            // Valeurs par défaut en cas d'erreur
+            game.expansion.progressToNext = 0;
+            if (elements.expansionProgress) elements.expansionProgress.style.width = '0%';
+            if (elements.expansionPercent) elements.expansionPercent.textContent = '0';
+        }
+    } catch (error) {
+        console.error("Erreur critique lors de la mise à jour du niveau d'expansion:", error);
     }
 }
 
@@ -2017,16 +2325,52 @@ function buyProducer(index) {
 
 // Fonction pour acheter une amélioration
 function buyUpgrade(index) {
+    console.log(`Tentative d'achat de l'amélioration ${index}...`);
+    
+    // Vérifier que l'index est valide
+    if (index < 0 || index >= game.upgrades.length) {
+        console.error(`Index d'amélioration non valide: ${index}`);
+        return;
+    }
+    
     const upgrade = game.upgrades[index];
+    console.log(`Amélioration: ${upgrade.name}, coût: ${upgrade.cost}, nanobots: ${game.nanobots}, déjà achetée: ${upgrade.purchased}`);
+    
+    // Vérifier si l'amélioration a une condition et si elle est remplie
+    if (upgrade.requirement) {
+        try {
+            const requirementMet = upgrade.requirement();
+            console.log(`Condition pour ${upgrade.name}: ${requirementMet ? 'remplie' : 'non remplie'}`);
+            if (!requirementMet) {
+                console.log(`Impossible d'acheter ${upgrade.name} car la condition n'est pas remplie`);
+                return;
+            }
+        } catch (error) {
+            console.error(`Erreur lors de l'évaluation de la condition pour ${upgrade.name}:`, error);
+            return;
+        }
+    }
     
     if (game.nanobots >= upgrade.cost && !upgrade.purchased) {
+        console.log(`Achat de l'amélioration ${upgrade.name} pour ${upgrade.cost} nanobots`);
         game.nanobots -= upgrade.cost;
         upgrade.purchased = true;
-        upgrade.effect();
+        
+        try {
+            console.log(`Application de l'effet de l'amélioration ${upgrade.name}`);
+            upgrade.effect();
+        } catch (error) {
+            console.error(`Erreur lors de l'application de l'effet pour ${upgrade.name}:`, error);
+            // On continue même en cas d'erreur pour éviter de bloquer le jeu
+        }
+        
         updateUI();
         
         // Effets visuels
         createFloatingNanobots(20);
+        createNotification(`Amélioration achetée: ${upgrade.name}`, 'success');
+    } else {
+        console.log(`Impossible d'acheter ${upgrade.name} (coût: ${upgrade.cost}, nanobots: ${game.nanobots}, déjà achetée: ${upgrade.purchased})`);
     }
 }
 
@@ -2213,14 +2557,35 @@ function updateProducers() {
 function updateUpgrades() {
     elements.upgradesContainer.innerHTML = '';
     
+    console.log("Mise à jour des améliorations...");
+    console.log("Nombre de producteurs:", game.producers.length);
+    
+    // Log des compteurs des producteurs pour le débogage
+    game.producers.forEach((producer, idx) => {
+        console.log(`Producteur ${idx}: ${producer.name}, count = ${producer.count}, id = ${producer.id}`);
+    });
+    
     game.upgrades.forEach((upgrade, index) => {
         // Si l'amélioration est déjà achetée, ne pas l'afficher
-        if (upgrade.purchased) return;
+        if (upgrade.purchased) {
+            console.log(`Amélioration ${upgrade.name} (${index}) : déjà achetée`);
+            return;
+        }
         
         // Vérifier si l'amélioration a une condition de déverrouillage
-        if (upgrade.requirement && !upgrade.requirement()) return;
+        if (upgrade.requirement) {
+            try {
+                const requirementMet = upgrade.requirement();
+                console.log(`Amélioration ${upgrade.name} (${index}) : condition ${requirementMet ? 'remplie' : 'non remplie'}`);
+                if (!requirementMet) return;
+            } catch (error) {
+                console.error(`Erreur lors de l'évaluation de la condition pour ${upgrade.name}:`, error);
+                return;
+            }
+        }
         
         const canBuy = game.nanobots >= upgrade.cost;
+        console.log(`Amélioration ${upgrade.name} (${index}) : affichée, peut acheter = ${canBuy}, coût = ${upgrade.cost}, nanobots = ${game.nanobots}`);
         
         const upgradeElement = document.createElement('div');
         upgradeElement.className = 'upgrade-item';
@@ -2389,37 +2754,78 @@ function showSaveNotification(isAuto = false) {
  * @param {boolean} isAuto - Indique si la sauvegarde est automatique
  */
 function saveGame(isAuto = false) {
-    const saveData = JSON.stringify(game);
-    localStorage.setItem('nanoBotExperienceSave', saveData);
-    game.lastSave = Date.now();
-    elements.lastSave.textContent = formatTime(game.lastSave);
-    
-    // Affiche une notification seulement si ce n'est pas une sauvegarde silencieuse
-    if (!isAuto || game.settings?.showAutoSaveNotification !== false) {
-        showSaveNotification(isAuto);
+    try {
+        // Sanitize game state before saving to avoid corrupted saves
+        sanitizeGameState(game);
+        
+        // Make a clean copy to avoid circular references
+        const gameToSave = JSON.parse(JSON.stringify(game));
+        
+        // Remove properties we don't need to save
+        delete gameToSave.gameLoopId;
+        delete gameToSave.offlineGainNotification;
+        
+        const saveData = JSON.stringify(gameToSave);
+        localStorage.setItem('nanoBotExperienceSave', saveData);
+        
+        // Update last save timestamp
+        game.lastSave = Date.now();
+        
+        // Update UI if lastSave element exists
+        if (elements.lastSave) {
+            elements.lastSave.textContent = formatTime(game.lastSave);
+        }
+        
+        // Show notification if appropriate
+        if (!isAuto || (game.settings && game.settings.showAutoSaveNotification !== false)) {
+            showSaveNotification(isAuto);
+        }
+        
+        console.log("Jeu sauvegardé avec succès à", new Date(game.lastSave).toLocaleString());
+        return true;
+    } catch (error) {
+        console.error("Erreur lors de la sauvegarde du jeu:", error);
+        createNotification("Erreur lors de la sauvegarde du jeu!", "error");
+        return false;
     }
 }
 
 // Charger le jeu
 function loadGame() {
+    const saveKey = 'nanoBotExperienceSave';
     console.log("Tentative de chargement de la sauvegarde...");
-    const saveData = localStorage.getItem('nanoBotExperienceSave');
-    
-    // Si aucune sauvegarde n'est trouvée, initialiser avec l'état par défaut
-    if (!saveData) {
-        console.log("Aucune sauvegarde trouvée, initialisation d'un nouveau jeu");
-        // S'assurer qu'on crée un nouvel objet pour éviter les références partagées
-        game = JSON.parse(JSON.stringify(getDefaultGameState()));
-        return false;
-    }
+    let hasSave = false;
     
     try {
+        const saveData = localStorage.getItem(saveKey);
+        
+        // Si aucune sauvegarde n'est trouvée, initialiser avec l'état par défaut
+        if (!saveData) {
+            console.log("Aucune sauvegarde trouvée, initialisation d'un nouveau jeu");
+            // S'assurer qu'on crée un nouvel objet pour éviter les références partagées
+            game = JSON.parse(JSON.stringify(getDefaultGameState()));
+            return false;
+        }
+        
+        hasSave = true;
         console.log("Sauvegarde trouvée, tentative de parse JSON");
-        const loadedGame = JSON.parse(saveData);
+        
+        let loadedGame;
+        try {
+            loadedGame = JSON.parse(saveData);
+        } catch (parseError) {
+            console.error("Erreur lors du parsing JSON de la sauvegarde:", parseError);
+            // Sauvegarde corrompue, la supprimer
+            localStorage.removeItem(saveKey);
+            createNotification("Sauvegarde corrompue détectée et supprimée. Démarrage d'une nouvelle partie.", "error");
+            game = JSON.parse(JSON.stringify(getDefaultGameState()));
+            return false;
+        }
         
         // S'assurer que loadedGame est bien un objet
         if (!loadedGame || typeof loadedGame !== 'object') {
             console.error("La sauvegarde n'est pas un objet valide");
+            localStorage.removeItem(saveKey);
             game = JSON.parse(JSON.stringify(getDefaultGameState()));
             return false;
         }
@@ -2440,19 +2846,109 @@ function loadGame() {
             } else if (key === 'achievements' && Array.isArray(loadedGame.achievements)) {
                 // Fusion spéciale pour les achievements pour préserver les nouveaux succès
                 newGame.achievements = JSON.parse(JSON.stringify(defaultGame.achievements));
+                
                 // Appliquer l'état de déverrouillage des achievements sauvegardés
                 loadedGame.achievements.forEach(savedAchievement => {
-                    const matchingAchievement = newGame.achievements.find(a => a.id === savedAchievement.id);
-                    if (matchingAchievement && savedAchievement.unlocked) {
-                        matchingAchievement.unlocked = true;
+                    if (savedAchievement && typeof savedAchievement === 'object' && savedAchievement.id) {
+                        const matchingAchievement = newGame.achievements.find(a => a.id === savedAchievement.id);
+                        if (matchingAchievement && savedAchievement.unlocked) {
+                            matchingAchievement.unlocked = true;
+                        }
+                    }
+                });
+            } else if (key === 'producers' && Array.isArray(loadedGame.producers)) {
+                // Fusion spéciale pour les producteurs pour préserver la structure
+                newGame.producers = JSON.parse(JSON.stringify(defaultGame.producers));
+                
+                // Appliquer les valeurs des producteurs sauvegardés
+                loadedGame.producers.forEach((savedProducer, index) => {
+                    if (savedProducer && typeof savedProducer === 'object' && index < newGame.producers.length) {
+                        // Conserver les propriétés de base mais copier count et unlocked
+                        if (typeof savedProducer.count === 'number') {
+                            newGame.producers[index].count = Math.max(0, savedProducer.count);
+                        }
+                        if (typeof savedProducer.unlocked === 'boolean') {
+                            newGame.producers[index].unlocked = savedProducer.unlocked;
+                        }
+                        if (typeof savedProducer.production === 'number' && savedProducer.production > 0) {
+                            newGame.producers[index].production = savedProducer.production;
+                        }
+                        if (typeof savedProducer.costMultiplier === 'number' && savedProducer.costMultiplier >= 1) {
+                            newGame.producers[index].costMultiplier = savedProducer.costMultiplier;
+                        }
+                    }
+                });
+            } else if (key === 'upgrades' && Array.isArray(loadedGame.upgrades)) {
+                // Fusion spéciale pour les améliorations
+                newGame.upgrades = JSON.parse(JSON.stringify(defaultGame.upgrades));
+                
+                // Appliquer l'état des améliorations sauvegardées
+                loadedGame.upgrades.forEach((savedUpgrade, index) => {
+                    if (savedUpgrade && typeof savedUpgrade === 'object' && index < newGame.upgrades.length) {
+                        if (typeof savedUpgrade.purchased === 'boolean') {
+                            newGame.upgrades[index].purchased = savedUpgrade.purchased;
+                        }
+                    }
+                });
+            } else if (key === 'expansion' && typeof loadedGame.expansion === 'object') {
+                // Fusion spéciale pour l'expansion
+                newGame.expansion = {...defaultGame.expansion};
+                
+                // Copier les propriétés simples
+                if (typeof loadedGame.expansion.currentLevel === 'number') {
+                    newGame.expansion.currentLevel = Math.max(0, loadedGame.expansion.currentLevel);
+                }
+                if (typeof loadedGame.expansion.progressToNext === 'number') {
+                    newGame.expansion.progressToNext = Math.max(0, Math.min(1, loadedGame.expansion.progressToNext));
+                }
+                if (typeof loadedGame.expansion.unlocked === 'boolean') {
+                    newGame.expansion.unlocked = loadedGame.expansion.unlocked;
+                }
+                
+                // Copier l'état des jalons
+                if (Array.isArray(loadedGame.expansion.milestones)) {
+                    loadedGame.expansion.milestones.forEach((savedMilestone, index) => {
+                        if (savedMilestone && typeof savedMilestone === 'object' && index < newGame.expansion.milestones.length) {
+                            if (typeof savedMilestone.unlocked === 'boolean') {
+                                newGame.expansion.milestones[index].unlocked = savedMilestone.unlocked;
+                            }
+                        }
+                    });
+                }
+            } else if (key === 'prestige' && typeof loadedGame.prestige === 'object') {
+                // Fusion spéciale pour le prestige
+                newGame.prestige = {...defaultGame.prestige};
+                
+                // Copier les propriétés en s'assurant qu'elles sont valides
+                if (typeof loadedGame.prestige.points === 'number') {
+                    newGame.prestige.points = Math.max(0, loadedGame.prestige.points);
+                }
+                if (typeof loadedGame.prestige.multiplier === 'number') {
+                    newGame.prestige.multiplier = Math.max(1, loadedGame.prestige.multiplier);
+                }
+                if (typeof loadedGame.prestige.unlocked === 'boolean') {
+                    newGame.prestige.unlocked = loadedGame.prestige.unlocked;
+                }
+            } else if (key === 'nanobots' || key === 'totalNanobots' || key === 'clickValue') {
+                // Copier directement les valeurs numériques en s'assurant qu'elles sont valides
+                if (typeof loadedGame[key] === 'number') {
+                    newGame[key] = Math.max(key === 'clickValue' ? 1 : 0, loadedGame[key]);
+                }
+            } else if (key === 'stats' && typeof loadedGame.stats === 'object') {
+                // Fusion des statistiques
+                newGame.stats = {...defaultGame.stats};
+                Object.keys(loadedGame.stats).forEach(statKey => {
+                    if (typeof loadedGame.stats[statKey] === 'number') {
+                        newGame.stats[statKey] = Math.max(0, loadedGame.stats[statKey]);
                     }
                 });
             } else {
+                // Copie directe pour les autres propriétés
                 newGame[key] = loadedGame[key];
             }
         });
         
-        // Vérifier et corriger les valeurs NaN qui pourraient s'être introduites
+        // Vérifier et corriger les valeurs NaN ou invalides qui pourraient s'être introduites
         console.log("Sanitization de l'état du jeu chargé");
         sanitizeGameState(newGame);
         
@@ -2464,20 +2960,27 @@ function loadGame() {
         
         // Calcul des gains hors ligne
         const currentTime = Date.now();
-        const offlineTime = (currentTime - game.lastUpdate) / 1000; // en secondes
+        const lastUpdate = Number(game.lastUpdate) || currentTime;
+        const offlineTime = Math.max(0, (currentTime - lastUpdate) / 1000); // en secondes
         
         if (offlineTime > 10) { // Si plus de 10 secondes se sont écoulées
-            const production = calculateProduction();
-            const offlineGain = production * offlineTime;
-            
-            game.nanobots += offlineGain;
-            game.totalNanobots += offlineGain;
-            
-            // Vérification des nouveaux jalons
-            checkMilestones();
-            
-            // Stocker le message pour l'afficher plus tard
-            game.offlineGainNotification = `Vous avez gagné ${formatNumber(offlineGain)} nanobots pendant votre absence!`;
+            try {
+                const production = calculateProduction();
+                const offlineGain = production * offlineTime;
+                
+                if (!isNaN(offlineGain) && isFinite(offlineGain) && offlineGain > 0) {
+                    game.nanobots += offlineGain;
+                    game.totalNanobots += offlineGain;
+                    
+                    // Vérification des nouveaux jalons
+                    checkMilestones();
+                    
+                    // Stocker le message pour l'afficher plus tard
+                    game.offlineGainNotification = `Vous avez gagné ${formatNumber(offlineGain)} nanobots pendant votre absence!`;
+                }
+            } catch (offlineError) {
+                console.error("Erreur lors du calcul des gains hors ligne:", offlineError);
+            }
         }
         
         // Mise à jour du temps
@@ -2485,21 +2988,38 @@ function loadGame() {
         
         // Appliquer le thème avant de mettre à jour l'interface
         if (game.settings && game.settings.theme) {
-            applyTheme(game.settings.theme);
+            try {
+                applyTheme(game.settings.theme);
+            } catch (themeError) {
+                console.error("Erreur lors de l'application du thème:", themeError);
+                // Fallback au thème par défaut
+                applyTheme('dark');
+            }
         }
         
         // Mettre à jour l'interface
-        updateUI();
-        if (elements.lastSave) {
-            elements.lastSave.textContent = formatTime(game.lastSave);
+        try {
+            updateUI();
+            if (elements.lastSave) {
+                elements.lastSave.textContent = formatTime(game.lastSave);
+            }
+        } catch (uiError) {
+            console.error("Erreur lors de la mise à jour de l'interface:", uiError);
         }
         
         console.log('Jeu chargé avec succès!');
         return true; // Indique qu'une sauvegarde a été chargée avec succès
     } catch (error) {
-        console.error('Erreur lors du chargement de la sauvegarde:', error);
-        // En cas d'erreur, utiliser l'état par défaut
-        Object.assign(game, getDefaultGameState());
+        console.error('Erreur critique lors du chargement de la sauvegarde:', error);
+        
+        // En cas d'erreur grave, supprimer la sauvegarde corrompue
+        if (hasSave) {
+            localStorage.removeItem(saveKey);
+            createNotification("Erreur lors du chargement de la sauvegarde. La sauvegarde a été supprimée.", "error");
+        }
+        
+        // Initialiser avec un état par défaut propre
+        game = JSON.parse(JSON.stringify(getDefaultGameState()));
         return false;
     }
 }
@@ -2520,93 +3040,257 @@ function resetGame() {
 
 // Boucle principale du jeu
 function gameLoop() {
-    const currentTime = Date.now();
-    const deltaTime = (currentTime - game.lastUpdate) / 1000; // en secondes
-    
-    // Mise à jour des ressources
-    const production = calculateProduction();
-    game.nanobots += production * deltaTime;
-    game.totalNanobots += production * deltaTime;
-    
-    // Appliquer la singularité si active (consomme 1% des nanobots par seconde)
-    if (game.singularityActive) {
-        const consumption = game.nanobots * 0.01 * deltaTime;
-        game.nanobots = Math.max(0, game.nanobots - consumption);
-    }
-    
-    // Nettoyer les boosts temporaires expirés
-    game.temporaryBoosts = game.temporaryBoosts.filter(boost => boost.expiryTime > currentTime);
-    
-    // Vérifier et débloquer des succès
-    const achievementsUpdated = checkAchievements();
-    
-    // Vérifier et débloquer des jalons
-    if (checkMilestones() || achievementsUpdated) {
-        updateUI();
-    } else {
-        // Mise à jour des affichages qui changent constamment
-        elements.nanobots.textContent = formatNumber(game.nanobots);
-        elements.perSecond.textContent = formatNumber(production);
+    try {
+        // Validation de la structure de base du jeu
+        if (!game || typeof game !== 'object') {
+            console.error("Structure de jeu invalide dans gameLoop");
+            return;
+        }
         
-        // Vérification des déverrouillages (producteurs et améliorations)
+        // Obtenir le timestamp actuel et calculer le delta temps
+        const currentTime = Date.now();
+        const lastUpdate = Number(game.lastUpdate) || currentTime;
+        
+        // Limiter deltaTime à 60 secondes max pour éviter les grands sauts en cas de mise en pause prolongée
+        const deltaTime = Math.min((currentTime - lastUpdate) / 1000, 60);
+        
+        // Calculer la production actuelle (avec protection contre NaN)
+        let production = 0;
+        try {
+            production = calculateProduction();
+        } catch (prodError) {
+            console.error("Erreur lors du calcul de la production:", prodError);
+        }
+        
+        // Mise à jour des ressources avec protection contre NaN et valeurs négatives
+        if (!isNaN(production) && isFinite(production) && production >= 0) {
+            // Incrémenter les nanobots avec protection contre NaN
+            const nanobotsGain = production * deltaTime;
+            if (!isNaN(nanobotsGain) && isFinite(nanobotsGain)) {
+                game.nanobots = Number(game.nanobots) || 0;
+                game.nanobots += nanobotsGain;
+                
+                game.totalNanobots = Number(game.totalNanobots) || 0;
+                game.totalNanobots += nanobotsGain;
+            }
+        }
+        
+        // Assurer que les valeurs ne deviennent jamais NaN
+        if (isNaN(game.nanobots) || !isFinite(game.nanobots)) {
+            console.error("Valeur de nanobots invalide détectée:", game.nanobots);
+            game.nanobots = 0;
+        }
+        
+        if (isNaN(game.totalNanobots) || !isFinite(game.totalNanobots)) {
+            console.error("Valeur de totalNanobots invalide détectée:", game.totalNanobots);
+            game.totalNanobots = 0;
+        }
+        
+        // Appliquer la singularité si active (consomme 1% des nanobots par seconde)
+        if (game.singularityActive) {
+            try {
+                const consumption = game.nanobots * 0.01 * deltaTime;
+                if (!isNaN(consumption) && isFinite(consumption)) {
+                    game.nanobots = Math.max(0, game.nanobots - consumption);
+                }
+            } catch (singularityError) {
+                console.error("Erreur lors de l'application de la singularité:", singularityError);
+            }
+        }
+        
+        // Nettoyer les boosts temporaires expirés
+        try {
+            if (Array.isArray(game.temporaryBoosts)) {
+                game.temporaryBoosts = game.temporaryBoosts.filter(boost => 
+                    boost && typeof boost === 'object' && Number(boost.expiryTime) > currentTime);
+            } else {
+                game.temporaryBoosts = [];
+            }
+        } catch (boostError) {
+            console.error("Erreur lors du nettoyage des boosts temporaires:", boostError);
+            game.temporaryBoosts = [];
+        }
+        
+        // Initialiser les flags de mise à jour
+        let achievementsUpdated = false;
+        let milestonesUpdated = false;
         let needUIUpdate = false;
         
-        // Vérifier si des producteurs peuvent être déverrouillés
-        game.producers.forEach(producer => {
-            if (!producer.unlocked && (game.nanobots >= producer.baseCost * 0.5 || game.totalNanobots >= producer.baseCost)) {
-                producer.unlocked = true;
-                needUIUpdate = true;
+        // Vérifier et débloquer des succès
+        try {
+            achievementsUpdated = checkAchievements();
+        } catch (achievementError) {
+            console.error("Erreur lors de la vérification des succès:", achievementError);
+        }
+        
+        // Vérifier et débloquer des jalons
+        try {
+            milestonesUpdated = checkMilestones();
+        } catch (milestoneError) {
+            console.error("Erreur lors de la vérification des jalons:", milestoneError);
+        }
+        
+        // Mettre à jour l'interface si nécessaire
+        if (milestonesUpdated || achievementsUpdated) {
+            try {
+                updateUI();
+            } catch (uiError) {
+                console.error("Erreur lors de la mise à jour de l'interface:", uiError);
             }
-        });
-        
-        // Mise à jour des points de prestige à gagner
-        const newPrestigeToGain = calculatePrestigeGain();
-        if (game.prestige.toGain !== newPrestigeToGain) {
-            game.prestige.toGain = newPrestigeToGain;
-            elements.prestigeToGain.textContent = newPrestigeToGain;
-            elements.prestigeButton.disabled = newPrestigeToGain < 1;
+        } else {
+            // Mise à jour minimale des affichages qui changent constamment
+            try {
+                if (elements.nanobots) {
+                    elements.nanobots.textContent = formatNumber(game.nanobots);
+                }
+                if (elements.perSecond) {
+                    elements.perSecond.textContent = formatNumber(production);
+                }
+                
+                // Vérification des déverrouillages (producteurs et améliorations)
+                if (Array.isArray(game.producers)) {
+                    game.producers.forEach(producer => {
+                        if (producer && typeof producer === 'object' && 
+                            !producer.unlocked && 
+                            ((game.nanobots >= producer.baseCost * 0.5) || 
+                             (game.totalNanobots >= producer.baseCost))) {
+                            producer.unlocked = true;
+                            needUIUpdate = true;
+                        }
+                    });
+                }
+                
+                // Mise à jour des points de prestige à gagner
+                if (game.prestige) {
+                    try {
+                        const newPrestigeToGain = calculatePrestigeGain();
+                        if (game.prestige.toGain !== newPrestigeToGain) {
+                            game.prestige.toGain = newPrestigeToGain;
+                            
+                            if (elements.prestigeToGain) {
+                                elements.prestigeToGain.textContent = newPrestigeToGain;
+                            }
+                            if (elements.prestigeButton) {
+                                elements.prestigeButton.disabled = newPrestigeToGain < 1;
+                            }
+                        }
+                    } catch (prestigeError) {
+                        console.error("Erreur lors du calcul des points de prestige:", prestigeError);
+                    }
+                }
+                
+                // Mise à jour complète de l'interface si nécessaire
+                if (needUIUpdate) {
+                    try {
+                        updateUI();
+                    } catch (uiUpdateError) {
+                        console.error("Erreur lors de la mise à jour complète de l'interface:", uiUpdateError);
+                    }
+                }
+            } catch (minUpdateError) {
+                console.error("Erreur lors de la mise à jour minimale:", minUpdateError);
+            }
         }
         
-        // Mise à jour complète de l'interface si nécessaire
-        if (needUIUpdate) {
-            updateUI();
+        // Sauvegarde automatique toutes les 30 secondes
+        try {
+            const lastSave = Number(game.lastSave) || 0;
+            if (currentTime - lastSave > 30000) { // 30000 ms = 30 secondes
+                saveGame(true); // Passe 'true' pour indiquer que c'est une sauvegarde automatique
+            }
+        } catch (saveError) {
+            console.error("Erreur lors de la sauvegarde automatique:", saveError);
         }
+        
+        // Mise à jour du temps
+        game.lastUpdate = currentTime;
+        
+        // Mise à jour du temps de jeu
+        if (game.stats) {
+            game.stats.playTime = Number(game.stats.playTime) || 0;
+            game.stats.playTime += deltaTime;
+        }
+        
+        // Continuer la boucle de jeu avec requestAnimationFrame
+        game.gameLoopId = requestAnimationFrame(gameLoop);
+        
+    } catch (criticalError) {
+        console.error("Erreur critique dans la boucle de jeu:", criticalError);
+        
+        // Continuer la boucle malgré l'erreur pour éviter que le jeu ne se fige
+        game.gameLoopId = requestAnimationFrame(gameLoop);
     }
-    
-    // Sauvegarde automatique toutes les 30 secondes (modifié)
-    if (currentTime - (game.lastSave || 0) > 30000) { // 30000 ms = 30 secondes
-        saveGame(true); // Passe 'true' pour indiquer que c'est une sauvegarde automatique
-    }
-    
-    // Mise à jour du temps
-    game.lastUpdate = currentTime;
-    game.stats.playTime += deltaTime;
-    
-    // Continuer la boucle de jeu avec requestAnimationFrame
-    game.gameLoopId = requestAnimationFrame(gameLoop);
 }
 
 // Initialisation
 // Fonctions pour le changement de thème
 function applyTheme(theme) {
-    if (theme === 'light') {
-        document.documentElement.classList.add('light-theme');
-        if (elements.themeToggle) {
-            elements.themeToggle.querySelector('i').className = 'fas fa-sun';
+    try {
+        // Vérifier que le thème est valide, sinon utiliser le thème sombre par défaut
+        if (theme !== 'light' && theme !== 'dark') {
+            console.warn(`Thème invalide: ${theme}, utilisation du thème sombre par défaut`);
+            theme = 'dark';
         }
-    } else {
-        document.documentElement.classList.remove('light-theme');
-        if (elements.themeToggle) {
-            elements.themeToggle.querySelector('i').className = 'fas fa-moon';
+        
+        // Appliquer la classe CSS appropriée
+        if (theme === 'light') {
+            document.documentElement.classList.add('light-theme');
+        } else {
+            document.documentElement.classList.remove('light-theme');
         }
+        
+        // Mettre à jour l'icône du bouton de changement de thème
+        if (elements.themeToggle) {
+            try {
+                const iconElement = elements.themeToggle.querySelector('i');
+                if (iconElement) {
+                    iconElement.className = theme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+                }
+            } catch (iconError) {
+                console.error("Erreur lors de la mise à jour de l'icône de thème:", iconError);
+            }
+        }
+        
+        // S'assurer que game.settings existe
+        if (!game.settings) {
+            game.settings = {};
+        }
+        
+        // Mettre à jour le paramètre de thème
+        game.settings.theme = theme;
+        
+        return true;
+    } catch (error) {
+        console.error("Erreur lors de l'application du thème:", error);
+        return false;
     }
-    game.settings.theme = theme;
 }
 
 function toggleTheme() {
-    const newTheme = game.settings.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(newTheme);
-    saveGame(true); // Sauvegarde silencieuse après changement de thème
+    try {
+        // S'assurer que game.settings existe
+        if (!game.settings) {
+            game.settings = { theme: 'dark' };
+        }
+        
+        // Déterminer le nouveau thème
+        const currentTheme = game.settings.theme || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        // Appliquer le nouveau thème
+        if (applyTheme(newTheme)) {
+            createNotification(`Thème ${newTheme === 'light' ? 'clair' : 'sombre'} activé`, 'info');
+        }
+        
+        // Sauvegarder les préférences
+        try {
+            saveGame(true); // Sauvegarde silencieuse après changement de thème
+        } catch (saveError) {
+            console.error("Erreur lors de la sauvegarde des préférences de thème:", saveError);
+        }
+    } catch (error) {
+        console.error("Erreur lors du changement de thème:", error);
+    }
 }
 
 // Fonction pour configurer les boutons et fonctionnalités
