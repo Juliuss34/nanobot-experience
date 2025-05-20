@@ -1,5 +1,14 @@
 <!DOCTYPE html>
 <!--
+Version 9 - Correction des problèmes d'achat de producteurs:
+- Ajout de logs de débogage détaillés dans les fonctions liées aux producteurs
+- Conversion explicite des types numériques (Number(), parseFloat(), parseInt())
+- Amélioration de getProducerCost() avec validations supplémentaires
+- Renforcement de updateProducers() avec vérifications de types et de structures
+- Amélioration de buyProducer() avec gestion d'erreurs et conversions de types
+- Affichage de notifications pour indiquer les succès ou échecs d'achat
+- Protection contre les erreurs de comparaison de types différents
+
 Version 8 - Résolution des erreurs TypeError et initialisation robuste:
 - Correction de getDefaultGameState() pour retourner correctement l'objet defaultState
 - Refonte complète de sanitizeGameState() pour une fusion profonde et sécurisée
@@ -36,7 +45,7 @@ Version 6 - Corrections des bugs d'améliorations:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nano Bot Experience v8</title>
+    <title>Nano Bot Experience v9</title>
     <style>
 /* Style amélioré pour Nano Bot Experience */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
@@ -1760,20 +1769,39 @@ function calculateProduction() {
 // Fonction pour calculer le coût d'un producteur
 function getProducerCost(producer) {
     try {
-        // Vérification que les valeurs sont numériques
-        const baseCost = Number(producer.baseCost) || 10; // Valeur par défaut
-        const costMultiplier = Number(producer.costMultiplier) || 1.1; // Valeur par défaut
-        const count = Number(producer.count) || 0;
+        // Log pour débogage
+        console.log('getProducerCost pour:', producer.name, 'baseCost:', producer.baseCost, 'count:', producer.count, 'costMultiplier:', producer.costMultiplier);
+        
+        // Vérification stricte que le producteur est un objet valide
+        if (!producer || typeof producer !== 'object') {
+            console.error("Producteur invalide passé à getProducerCost:", producer);
+            return 10; // Valeur par défaut en cas d'erreur
+        }
+        
+        // Vérification que les valeurs sont numériques avec conversion explicite
+        const baseCost = parseFloat(producer.baseCost);
+        const costMultiplier = parseFloat(producer.costMultiplier);
+        const count = parseInt(producer.count);
+        
+        // Vérification supplémentaire avec valeurs de secours
+        const validBaseCost = isNaN(baseCost) ? 10 : baseCost; 
+        const validMultiplier = (isNaN(costMultiplier) || costMultiplier < 1) ? 1.1 : costMultiplier;
+        const validCount = isNaN(count) ? 0 : count;
+        
+        console.log('Valeurs validées:', 'baseCost:', validBaseCost, 'costMultiplier:', validMultiplier, 'count:', validCount);
         
         // Calcul du coût avec une limitation pour éviter des valeurs extrêmes
-        const cost = Math.floor(baseCost * Math.pow(costMultiplier, count));
+        const cost = Math.floor(validBaseCost * Math.pow(validMultiplier, validCount));
+        
+        console.log('Coût calculé avant validation:', cost);
         
         // Protection contre NaN, infini ou valeurs négatives
         if (isNaN(cost) || !isFinite(cost) || cost <= 0) {
             console.error("Coût de producteur invalide calculé:", cost);
-            return baseCost; // Revenir à la base par défaut
+            return validBaseCost; // Revenir à la base par défaut
         }
         
+        console.log('Coût final retourné:', cost, 'type:', typeof cost);
         return cost;
     } catch (error) {
         console.error("Erreur dans le calcul du coût du producteur:", error);
@@ -2532,16 +2560,51 @@ function updateExpansionLevel() {
 
 // Fonction pour acheter un producteur
 function buyProducer(index) {
-    const producer = game.producers[index];
-    const cost = getProducerCost(producer);
+    console.log(`Tentative d'achat du producteur ${index}`);
     
-    if (game.nanobots >= cost) {
-        game.nanobots -= cost;
-        producer.count++;
-        updateUI();
+    // Vérifier que l'index est valide
+    if (index < 0 || !Array.isArray(game.producers) || index >= game.producers.length) {
+        console.error(`Index de producteur invalide: ${index}`);
+        return;
+    }
+    
+    const producer = game.producers[index];
+    console.log(`Producteur sélectionné:`, producer.name, `(count: ${producer.count})`);
+    
+    try {
+        // Obtenir le coût avec type forcé en nombre
+        const cost = Number(getProducerCost(producer));
+        console.log(`Coût calculé: ${cost}, Type: ${typeof cost}`);
         
-        // Effets visuels
-        createFloatingNanobots(10);
+        // Convertir explicitement game.nanobots en nombre
+        const currentNanobots = Number(game.nanobots);
+        console.log(`Nanobots actuels: ${currentNanobots}, Type: ${typeof currentNanobots}`);
+        
+        // Vérifier si le joueur peut acheter
+        if (currentNanobots >= cost) {
+            console.log(`Achat possible: ${currentNanobots} >= ${cost}`);
+            
+            // Mettre à jour les ressources et le compteur
+            game.nanobots = currentNanobots - cost;
+            producer.count++;
+            
+            console.log(`Achat réussi! Nouveau compte de ${producer.name}: ${producer.count}`);
+            console.log(`Nanobots restants: ${game.nanobots}`);
+            
+            // Mettre à jour l'interface
+            updateUI();
+            
+            // Effets visuels
+            createFloatingNanobots(10);
+            
+            // Notification d'achat
+            createNotification(`${producer.name} acheté!`, 'success');
+        } else {
+            console.log(`Achat impossible: ${currentNanobots} < ${cost}`);
+            createNotification(`Pas assez de nanobots pour acheter ${producer.name}`, 'error');
+        }
+    } catch (error) {
+        console.error(`Erreur lors de l'achat du producteur:`, error);
     }
 }
 
@@ -2723,23 +2786,76 @@ function createFloatingNanobots(count, color = 'rgba(0, 229, 255, 0.7)') {
 
 // Mettre à jour l'affichage des producteurs
 function updateProducers() {
+    console.log("Mise à jour des producteurs...");
+    
+    // Vérification que le conteneur existe
+    if (!elements.producersContainer) {
+        console.error("Conteneur des producteurs non trouvé!");
+        return;
+    }
+    
+    // Vider le conteneur des producteurs
     elements.producersContainer.innerHTML = '';
     
+    // Vérification que game.producers est un tableau
+    if (!Array.isArray(game.producers)) {
+        console.error("game.producers n'est pas un tableau:", game.producers);
+        return;
+    }
+    
+    console.log("Nombre de producteurs:", game.producers.length);
+    console.log("État actuel des nanobots:", game.nanobots, "Type:", typeof game.nanobots);
+    
+    // Convertir explicitement game.nanobots en nombre pour éviter les problèmes de comparaison
+    const currentNanobots = Number(game.nanobots);
+    console.log("Nanobots convertis:", currentNanobots, "Type après conversion:", typeof currentNanobots);
+    
+    // Parcourir tous les producteurs
     game.producers.forEach((producer, index) => {
+        // Vérifier que le producteur est un objet valide
+        if (!producer || typeof producer !== 'object') {
+            console.error(`Producteur ${index} invalide:`, producer);
+            return;
+        }
+        
+        console.log(`Traitement du producteur ${index}:`, producer.name, "Déverrouillé:", producer.unlocked);
+        
         // Vérifier si le producteur est déverrouillé
         if (!producer.unlocked) {
-            if (game.nanobots >= producer.baseCost * 0.5 || game.totalNanobots >= producer.baseCost) {
+            console.log(`Producteur ${producer.name} non déverrouillé, vérification des conditions de déverrouillage`);
+            
+            const baseCost = Number(producer.baseCost) || 10;
+            console.log(`Conditions de déverrouillage: nanobots >= ${baseCost * 0.5} OU totalNanobots >= ${baseCost}`);
+            
+            if (currentNanobots >= baseCost * 0.5 || Number(game.totalNanobots) >= baseCost) {
+                console.log(`Conditions remplies, déverrouillage de ${producer.name}`);
                 producer.unlocked = true;
             } else {
-                return;
+                console.log(`Conditions non remplies, ${producer.name} reste verrouillé`);
+                return; // Passer au producteur suivant
             }
         }
         
-        const cost = getProducerCost(producer);
-        const canBuy = game.nanobots >= cost;
+        // Log avant calcul du coût
+        console.log('Vérification producteur:', producer.name, 'Nanobots actuels:', currentNanobots, 'Type de currentNanobots:', typeof currentNanobots);
         
+        // Obtenir le coût du producteur
+        const cost = getProducerCost(producer);
+        
+        // Log après calcul du coût
+        console.log('Coût calculé pour', producer.name, ':', cost, 'Type de cost:', typeof cost);
+        
+        // Vérifier si le joueur peut acheter le producteur (avec conversion explicite)
+        const canBuy = currentNanobots >= Number(cost);
+        
+        // Log après vérification de la possibilité d'achat
+        console.log('Peut acheter', producer.name, '?', canBuy, `(${currentNanobots} >= ${cost})`);
+        
+        // Créer l'élément HTML pour le producteur
         const producerElement = document.createElement('div');
         producerElement.className = 'producer-item';
+        
+        // Générer le contenu HTML
         producerElement.innerHTML = `
             <div class="producer-info">
                 <div class="producer-title"><i class="fas fa-${producer.icon}"></i> ${producer.name} (${producer.count})</div>
@@ -2754,13 +2870,17 @@ function updateProducers() {
             </button>
         `;
         
+        // Ajouter l'élément au conteneur
         elements.producersContainer.appendChild(producerElement);
     });
+    
+    console.log("Ajout des écouteurs d'événements aux boutons d'achat");
     
     // Ajouter les écouteurs d'événements pour les boutons d'achat
     document.querySelectorAll('.buy-button[data-producer]').forEach(button => {
         button.addEventListener('click', function() {
             const producerIndex = parseInt(this.getAttribute('data-producer'));
+            console.log(`Clic sur le bouton d'achat pour le producteur ${producerIndex}`);
             buyProducer(producerIndex);
         });
     });
@@ -2867,30 +2987,78 @@ function updatePrestige() {
 
 // Fonction pour mettre à jour l'interface utilisateur
 function updateUI() {
-    // Mise à jour des compteurs principaux
-    elements.nanobots.textContent = formatNumber(game.nanobots);
-    elements.perSecond.textContent = formatNumber(calculateProduction());
-    elements.clickValue.textContent = formatNumber(game.clickValue);
-    elements.expansionLevel.textContent = game.expansion.levelNames[game.expansion.currentLevel];
-    
-    // Mise à jour de la barre de progression
-    elements.expansionProgress.style.width = `${game.expansion.progressToNext * 100}%`;
-    elements.expansionPercent.textContent = Math.floor(game.expansion.progressToNext * 100);
-    
-    // Mise à jour des producteurs
-    updateProducers();
-    
-    // Mise à jour des améliorations
-    updateUpgrades();
-    
-    // Mise à jour des jalons
-    updateMilestones();
-    
-    // Mise à jour du prestige
-    updatePrestige();
-    
-    // Mise à jour des succès
-    updateAchievements();
+    try {
+        console.log("Mise à jour de l'interface utilisateur");
+        
+        // Assurer que game existe et est un objet valide
+        if (!game || typeof game !== 'object') {
+            console.error("État du jeu invalide dans updateUI");
+            return;
+        }
+        
+        // Vérifier et convertir les valeurs principales en nombres
+        game.nanobots = Number(game.nanobots) || 0;
+        game.totalNanobots = Number(game.totalNanobots) || 0;
+        game.clickValue = Number(game.clickValue) || 1;
+        
+        console.log("Valeurs principales après conversion:", 
+            "nanobots:", game.nanobots, 
+            "totalNanobots:", game.totalNanobots, 
+            "clickValue:", game.clickValue);
+        
+        // Mise à jour des compteurs principaux
+        if (elements.nanobots) {
+            elements.nanobots.textContent = formatNumber(game.nanobots);
+        }
+        
+        if (elements.perSecond) {
+            elements.perSecond.textContent = formatNumber(calculateProduction());
+        }
+        
+        if (elements.clickValue) {
+            elements.clickValue.textContent = formatNumber(game.clickValue);
+        }
+        
+        // Vérifier que l'expansion existe et est correctement initialisée
+        if (game.expansion && Array.isArray(game.expansion.levelNames)) {
+            // Vérifier et corriger currentLevel si nécessaire
+            const maxLevel = game.expansion.levelNames.length - 1;
+            game.expansion.currentLevel = Math.min(
+                Math.max(0, Number(game.expansion.currentLevel) || 0),
+                maxLevel
+            );
+            
+            if (elements.expansionLevel) {
+                elements.expansionLevel.textContent = game.expansion.levelNames[game.expansion.currentLevel];
+            }
+            
+            // Vérifier et corriger progressToNext
+            game.expansion.progressToNext = Math.min(
+                Math.max(0, Number(game.expansion.progressToNext) || 0),
+                1
+            );
+            
+            if (elements.expansionProgress) {
+                elements.expansionProgress.style.width = `${game.expansion.progressToNext * 100}%`;
+            }
+            
+            if (elements.expansionPercent) {
+                elements.expansionPercent.textContent = Math.floor(game.expansion.progressToNext * 100);
+            }
+        } else {
+            console.error("Structure d'expansion invalide dans updateUI");
+        }
+        
+        // Mise à jour des différentes sections de l'interface
+        updateProducers();
+        updateUpgrades();
+        updateMilestones();
+        updatePrestige();
+        updateAchievements();
+        
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour de l'interface:", error);
+    }
 }
 
 /**
