@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Version 16 - Ajout d'un menu complet et notes de version:
+Version 16.1 - Correction du bug de chargement et robustesse accrue:
 - Création d'un écran d'accueil avec menu principal
 - Option pour continuer une partie avec info de dernière sauvegarde
 - Menu de paramètres complet pour audio et effets visuels
@@ -4727,160 +4727,74 @@ function proceedToGame() {
  * Fonction d'initialisation principale du jeu.
  * Appelée au chargement de la page.
  */
-function init() {
-    console.log('Initialisation de Nano Bot Experience v12...');
-    
-    // Initialisation des éléments
-    try {
-        // Initialiser game comme un objet vide pour éviter les erreurs de référence
-        if (typeof game === 'undefined') {
-            window.game = {};
-        }
-        
-        // S'assurer qu'il n'y a pas de boucle de jeu active
-        if (game.gameLoopId) {
-            stopGameLoop();
-        }
-        
-        // S'assurer que le conteneur du jeu est caché au départ
-        const gameContainer = document.querySelector('.game-container');
-        if (gameContainer) {
-            gameContainer.style.display = 'none';
-        }
-        
-        // Tester si getDefaultGameState fonctionne correctement
-        const testDefaultState = getDefaultGameState();
-        if (!testDefaultState || typeof testDefaultState !== 'object') {
-            throw new Error("La fonction getDefaultGameState ne retourne pas un objet valide");
-        }
-        
-        // Vérifier que les structures essentielles sont présentes
-        if (!Array.isArray(testDefaultState.producers) || 
-            !Array.isArray(testDefaultState.upgrades) || 
-            !testDefaultState.expansion || 
-            !testDefaultState.prestige) {
-            throw new Error("L'état par défaut ne contient pas toutes les structures nécessaires");
-        }
-        
-        // Charger la sauvegarde ou initialiser une nouvelle partie
-        try {
-            const saveLoaded = loadGame();
-            console.log("État du chargement de la sauvegarde:", saveLoaded ? "Succès" : "Nouvelle partie");
-            
-            // Vérifier encore une fois que le jeu est dans un état valide
-            if (!game || typeof game !== 'object') {
-                throw new Error("État du jeu invalide après loadGame");
-            }
-            
-            // Initialiser la dernière mise à jour si elle n'existe pas
-            if (!game.lastUpdate) {
-                game.lastUpdate = Date.now();
-            }
-        } catch (loadError) {
-            console.error("Erreur lors du chargement du jeu:", loadError);
-            
-            // Récupération d'urgence
-            localStorage.removeItem('nanoBotExperienceSave');
-            game = getDefaultGameState();
-            
-            if (!game || typeof game !== 'object') {
-                throw new Error("Impossible d'obtenir un état par défaut valide");
-            }
-            
-            console.log("Récupération avec un nouvel état par défaut après erreur de chargement");
-        }
-        
-        // S'assurer que les références aux éléments du DOM sont initialisées
-        initializeElements();
-        
-        // Appliquer le thème du jeu une fois les éléments initialisés
-        if (game.settings && game.settings.theme) {
-            applyTheme(game.settings.theme);
-        } else {
-            applyTheme('dark'); // Thème par défaut
-        }
-        
-        // Simuler un temps de chargement avant d'afficher les options de démarrage
-        setTimeout(() => {
-            showStartOptions();
-        }, 1500);
-    } catch (error) {
-        console.error("Erreur critique lors de l'initialisation:", error);
-        
-        // En cas d'erreur grave, on réinitialise complètement
-        try {
-            localStorage.removeItem('nanoBotExperienceSave');
-            
-            // Créer un état minimal garanti
-            window.game = {
-                nanobots: 0,
-                totalNanobots: 0,
-                clickValue: 1,
-                lastUpdate: Date.now(),
-                producers: [],
-                upgrades: [],
-                prestige: { unlocked: false, points: 0, multiplier: 1 },
-                expansion: { currentLevel: 0, progressToNext: 0 },
-                settings: { theme: 'dark' }
-            };
-            
-            // Afficher un message d'erreur
-            alert("Une erreur critique est survenue. Le jeu a été réinitialisé. Rechargez la page si les problèmes persistent.");
-            
-            // Tenter d'afficher les options de démarrage malgré tout
-            setTimeout(() => {
-                try {
-                    showStartOptions();
-                } catch (startError) {
-                    console.error("Impossible d'afficher les options de démarrage:", startError);
-                    alert("Erreur critique. Veuillez recharger la page.");
-                }
-            }, 1000);
-        } catch (recoveryError) {
-            console.error("Échec de la récupération d'urgence:", recoveryError);
-            alert("Erreur critique. Veuillez recharger la page.");
-        }
-    }
-}
+// Première instance de init() (autour de la ligne 4730) supprimée. La version unifiée est insérée plus bas.
 
 /**
  * Initialise les références aux éléments DOM utilisés dans le jeu.
  * Cette fonction garantit que les éléments de l'interface sont correctement liés.
  */
 function initializeElements() {
+    const elements = {};
+    const missingElements = [];
+    
     try {
-        // Recharger tous les éléments du DOM
-        window.elements = {
-            nanobots: document.getElementById('nanobots') || document.createElement('div'),
-            perSecond: document.getElementById('per-second') || document.createElement('div'),
-            clickValue: document.getElementById('click-value') || document.createElement('div'),
-            expansionLevel: document.getElementById('expansion-level') || document.createElement('div'),
-            expansionProgress: document.getElementById('expansion-progress') || document.createElement('div'),
-            expansionPercent: document.getElementById('expansion-percent') || document.createElement('div'),
-            clicker: document.getElementById('clicker') || document.createElement('div'),
-            producersContainer: document.getElementById('producers-container') || document.createElement('div'),
-            upgradesContainer: document.getElementById('upgrades-container') || document.createElement('div'),
-            milestonesContainer: document.getElementById('milestones-container') || document.createElement('div'),
-            prestigePoints: document.getElementById('prestige-points') || document.createElement('div'),
-            prestigeMultiplier: document.getElementById('prestige-multiplier') || document.createElement('div'),
-            prestigeToGain: document.getElementById('prestige-to-gain') || document.createElement('div'),
-            prestigeButton: document.getElementById('prestige-button') || document.createElement('button'),
-            saveButton: document.getElementById('save-button') || document.createElement('button'),
-            resetButton: document.getElementById('reset-button') || document.createElement('button'),
-            themeToggle: document.getElementById('theme-toggle') || document.createElement('button'),
-            lastSave: document.getElementById('last-save') || document.createElement('div'),
-            achievementsContainer: document.getElementById('achievements-container') || document.createElement('div'),
-            achievementsBonus: document.getElementById('achievements-bonus') || document.createElement('div')
-        };
+        const requiredElements = [
+            'nanobots', 'perSecond', 'clickValue', 'expansionLevel',
+            'expansionProgress', 'expansionPercent', 'clicker',
+            'producersContainer', 'upgradesContainer', 'milestonesContainer',
+            'prestigePoints', 'prestigeMultiplier', 'prestigeToGain',
+            'prestigeButton', 'saveButton', 'resetButton', 'themeToggle',
+            'lastSave', 'colorPickerContainer',
+            'mainMenu', 'settingsMenu', 'versionNotesMenu', 'loadingOverlay',
+            'gameContainer', 'saveDetails', 'continueGame', 'newGame',
+            'openSettings', 'showVersionNotes', 'settingsBack', 'versionNotesBack',
+            'musicToggle', 'volumeSlider', 'volumeValue', 'visualizerToggle',
+            'darkThemeToggle', 'particlesToggle', 'notificationsToggle',
+            'autosaveToggle', 'resetGameButton',
+            'backgroundMusic', 'audioVisualizer', 'saveNotification', // Ajout de saveNotification
+            'achievementsContainer', 'achievementsBonus' // Ajout des éléments manquants de la v12
+        ];
         
-        console.log("Éléments DOM initialisés avec succès");
+        requiredElements.forEach(id => {
+            const elem = document.getElementById(id);
+            const key = toCamelCase(id);
+            
+            if (elem) {
+                elements[key] = elem;
+            } else {
+                missingElements.push(id);
+                const substitute = document.createElement('div');
+                substitute.id = `substitute-${id}`;
+                substitute.dataset.missingElement = id;
+                substitute.style.display = 'none';
+                document.body.appendChild(substitute);
+                elements[key] = substitute;
+            }
+        });
+        
+        if (missingElements.length > 0) {
+            console.warn(`Éléments DOM manquants (substituts créés): ${missingElements.join(', ')}`);
+        }
+        
+        window.elements = elements;
+        console.log("Éléments DOM initialisés");
+        return elements;
     } catch (error) {
-        console.error("Erreur lors de l'initialisation des éléments DOM:", error);
+        console.error("Erreur critique lors de l'initialisation des éléments DOM:", error);
+        throw new Error(`Impossible d'initialiser les éléments DOM: ${error.message}`);
     }
 }
 
 // Système de menu et fonctionnalités associées
 // ===============================================
+
+/**
+ * Fonction utilitaire pour convertir un ID en camelCase pour les clés d'élements
+ */
+function toCamelCase(str) {
+    return str.replace(/[-_]([a-z])/g, function(g) { return g[1].toUpperCase(); });
+}
+
 
 // Variables globales pour le menu
 let hasSaveData = false;
@@ -4894,158 +4808,60 @@ let lastSaveInfo = '';
 
 // Initialiser le menu principal
 function initializeMenu() {
-    if (menuInitialized) return;
-    
     try {
         console.log("Initialisation du menu...");
+        if (!window.elements) {
+            window.elements = initializeElements(); // S'assurer que les éléments sont initialisés
+        }
         
-        // Éléments du DOM
-        const mainMenu = document.getElementById('main-menu');
-        const settingsMenu = document.getElementById('settings-menu');
-        const versionNotesMenu = document.getElementById('version-notes-menu');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const gameContainer = document.querySelector('.game-container');
-        const saveDetails = document.getElementById('save-details');
-        
-        // Boutons du menu
-        const continueGameBtn = document.getElementById('continue-game');
-        const newGameBtn = document.getElementById('new-game');
-        const openSettingsBtn = document.getElementById('open-settings');
-        const showVersionNotesBtn = document.getElementById('show-version-notes');
-        
-        // Boutons retour
-        const settingsBackBtn = document.getElementById('settings-back');
-        const versionNotesBackBtn = document.getElementById('version-notes-back');
-        
-        // Boutons paramètres
-        const musicToggle = document.getElementById('music-toggle');
-        const volumeSlider = document.getElementById('volume-slider');
-        const visualizerToggle = document.getElementById('visualizer-toggle');
-        const darkThemeToggle = document.getElementById('dark-theme-toggle');
-        const particlesToggle = document.getElementById('particles-toggle');
-        const notificationsToggle = document.getElementById('notifications-toggle');
-        const autosaveToggle = document.getElementById('autosave-toggle');
-        const resetGameButton = document.getElementById('reset-game-button');
-        
-        // Vérifier s'il existe une sauvegarde
-        hasSaveData = localStorage.getItem('nanoBotExperienceSave') !== null;
-        
-        // Mettre à jour le bouton continuer
+        const mainMenu = window.elements.mainMenu;
+        if (!mainMenu || mainMenu.dataset.missingElement) {
+            console.error("Menu principal (main-menu) non trouvé dans le DOM. Impossible d'initialiser le menu.");
+            // Afficher un message d'erreur à l'utilisateur et arrêter
+            document.body.innerHTML = '<div style="color:white;background:#222;padding:30px;text-align:center;font-family:sans-serif;"><h2>Erreur Critique de Chargement</h2><p>Le menu principal du jeu n\'a pas pu être chargé. Cela peut être dû à une erreur dans le fichier HTML. Veuillez vérifier la console du navigateur (F12) pour plus de détails et contacter le développeur.</p></div>';
+            return false; // Arrêter l'initialisation si le menu principal est manquant
+        }
+
+        window.hasSaveData = localStorage.getItem('nanoBotExperienceSave') !== null;
         updateContinueButton();
-        
-        // Initialiser les particules
-        createMenuParticles();
-        
-        // Ajouter les écouteurs d'événements
-        
-        // Menu principal
-        continueGameBtn.addEventListener('click', () => {
-            if (hasSaveData) {
-                startGame(true);
-            }
-        });
-        
-        newGameBtn.addEventListener('click', () => {
-            confirmNewGame();
-        });
-        
-        openSettingsBtn.addEventListener('click', () => {
-            mainMenu.classList.add('hidden');
-            settingsMenu.classList.remove('hidden');
-            loadSettings();
-        });
-        
-        showVersionNotesBtn.addEventListener('click', () => {
-            mainMenu.classList.add('hidden');
-            versionNotesMenu.classList.remove('hidden');
-        });
-        
-        // Boutons retour
-        settingsBackBtn.addEventListener('click', () => {
-            settingsMenu.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        });
-        
-        versionNotesBackBtn.addEventListener('click', () => {
-            versionNotesMenu.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        });
-        
-        // Contrôles audio
-        if (musicToggle) {
-            musicToggle.addEventListener('change', () => {
-                toggleBackgroundMusic(musicToggle.checked);
-            });
+
+        if (typeof createMenuParticles === 'function') {
+            createMenuParticles();
         }
-        
-        if (volumeSlider) {
-            volumeSlider.addEventListener('input', () => {
-                const volume = volumeSlider.value / 100;
-                const volumeValue = document.getElementById('volume-value');
-                if (volumeValue) {
-                    volumeValue.textContent = volumeSlider.value + '%';
-                }
-                setMusicVolume(volume);
-            });
+
+        attachMenuEventListeners();
+
+        if (typeof initializeAudioSystem === 'function') {
+            initializeAudioSystem();
         }
-        
-        if (visualizerToggle) {
-            visualizerToggle.addEventListener('change', () => {
-                toggleAudioVisualizer(visualizerToggle.checked);
-            });
+
+        window.menuInitialized = true;
+        console.log("Menu initialisé avec succès.");
+
+        // Afficher le menu et masquer l'écran de chargement si les éléments existent
+        if (elements.loadingOverlay && !elements.loadingOverlay.dataset.missingElement) {
+            elements.loadingOverlay.classList.add('hidden');
         }
+        mainMenu.classList.remove('hidden');
         
-        // Paramètres d'interface
-        if (darkThemeToggle) {
-            darkThemeToggle.addEventListener('change', () => {
-                applyTheme(darkThemeToggle.checked ? 'dark' : 'light');
-            });
-        }
-        
-        if (particlesToggle) {
-            particlesToggle.addEventListener('change', () => {
-                toggleParticles(particlesToggle.checked);
-            });
-        }
-        
-        if (notificationsToggle) {
-            notificationsToggle.addEventListener('change', () => {
-                // Mettre à jour les paramètres
-                if (game && game.settings) {
-                    game.settings.showAutoSaveNotification = notificationsToggle.checked;
-                }
-            });
-        }
-        
-        // Paramètres de sauvegarde
-        if (autosaveToggle) {
-            autosaveToggle.addEventListener('change', () => {
-                toggleAutoSave(autosaveToggle.checked);
-            });
-        }
-        
-        if (resetGameButton) {
-            resetGameButton.addEventListener('click', () => {
-                confirmResetGame();
-            });
-        }
-        
-        // Initialiser le système audio
-        initializeAudioSystem();
-        
-        menuInitialized = true;
-        console.log("Menu initialisé avec succès");
+        return true;
     } catch (error) {
-        console.error("Erreur lors de l'initialisation du menu:", error);
+        console.error("Erreur catastrophique lors de l'initialisation du menu:", error);
+        alert(`Une erreur majeure est survenue lors de l'initialisation du menu: ${error.message}. Le jeu risque de ne pas fonctionner correctement. Veuillez recharger la page.`);
+        return false;
     }
 }
 
 // Mettre à jour le bouton continuer avec les infos de sauvegarde
 function updateContinueButton() {
-    const continueGameBtn = document.getElementById('continue-game');
-    const saveDetails = document.getElementById('save-details');
-    
-    if (!continueGameBtn || !saveDetails) return;
+    // Utiliser window.elements qui est initialisé par initializeElements()
+    const continueGameBtn = window.elements.continueGame;
+    const saveDetails = window.elements.saveDetails;
+
+    if (!continueGameBtn || continueGameBtn.dataset.missingElement || !saveDetails || saveDetails.dataset.missingElement) {
+        console.warn("Éléments pour le bouton 'Continuer' non trouvés.");
+        return;
+    }
     
     try {
         // Vérifier s'il existe une sauvegarde
@@ -5100,6 +4916,88 @@ function createMenuParticles() {
     if (!menuParticles) return;
     
     try {
+
+// Fonction pour attacher les écouteurs d'événements au menu
+function attachMenuEventListeners() {
+    try {
+        const el = window.elements; // Raccourci pour plus de lisibilité
+
+        // Vérifier que les éléments clés existent
+        if (!el.continueGame || !el.newGame || !el.openSettings || !el.showVersionNotes) {
+            console.warn("Certains boutons du menu principal sont manquants, les écouteurs ne seront pas tous attachés.");
+        }
+
+        if (el.continueGame && !el.continueGame.dataset.missingElement) {
+            el.continueGame.addEventListener('click', () => {
+                if (window.hasSaveData) startGame(true);
+            });
+        }
+        if (el.newGame && !el.newGame.dataset.missingElement) {
+            el.newGame.addEventListener('click', confirmNewGame);
+        }
+        if (el.openSettings && !el.openSettings.dataset.missingElement && el.settingsMenu && !el.settingsMenu.dataset.missingElement) {
+            el.openSettings.addEventListener('click', () => {
+                el.mainMenu.classList.add('hidden');
+                el.settingsMenu.classList.remove('hidden');
+                if (typeof loadSettings === 'function') loadSettings();
+            });
+        }
+        if (el.showVersionNotes && !el.showVersionNotes.dataset.missingElement && el.versionNotesMenu && !el.versionNotesMenu.dataset.missingElement) {
+            el.showVersionNotes.addEventListener('click', () => {
+                el.mainMenu.classList.add('hidden');
+                el.versionNotesMenu.classList.remove('hidden');
+            });
+        }
+        if (el.settingsBack && !el.settingsBack.dataset.missingElement) {
+            el.settingsBack.addEventListener('click', () => {
+                el.settingsMenu.classList.add('hidden');
+                el.mainMenu.classList.remove('hidden');
+            });
+        }
+        if (el.versionNotesBack && !el.versionNotesBack.dataset.missingElement) {
+            el.versionNotesBack.addEventListener('click', () => {
+                el.versionNotesMenu.classList.add('hidden');
+                el.mainMenu.classList.remove('hidden');
+            });
+        }
+        if (el.musicToggle && !el.musicToggle.dataset.missingElement && typeof toggleBackgroundMusic === 'function') {
+            el.musicToggle.addEventListener('change', () => toggleBackgroundMusic(el.musicToggle.checked));
+        }
+        if (el.volumeSlider && !el.volumeSlider.dataset.missingElement && typeof setMusicVolume === 'function') {
+            el.volumeSlider.addEventListener('input', () => {
+                const volume = el.volumeSlider.value / 100;
+                if (el.volumeValue && !el.volumeValue.dataset.missingElement) {
+                    el.volumeValue.textContent = el.volumeSlider.value + '%';
+                }
+                setMusicVolume(volume);
+            });
+        }
+        if (el.visualizerToggle && !el.visualizerToggle.dataset.missingElement && typeof toggleAudioVisualizer === 'function') {
+            el.visualizerToggle.addEventListener('change', () => toggleAudioVisualizer(el.visualizerToggle.checked));
+        }
+        if (el.darkThemeToggle && !el.darkThemeToggle.dataset.missingElement && typeof applyTheme === 'function') {
+            el.darkThemeToggle.addEventListener('change', () => applyTheme(el.darkThemeToggle.checked ? 'dark' : 'light'));
+        }
+        if (el.particlesToggle && !el.particlesToggle.dataset.missingElement && typeof toggleParticles === 'function') {
+            el.particlesToggle.addEventListener('change', () => toggleParticles(el.particlesToggle.checked));
+        }
+        if (el.notificationsToggle && !el.notificationsToggle.dataset.missingElement) {
+            el.notificationsToggle.addEventListener('change', () => {
+                if (window.game && window.game.settings) window.game.settings.showAutoSaveNotification = el.notificationsToggle.checked;
+            });
+        }
+        if (el.autosaveToggle && !el.autosaveToggle.dataset.missingElement && typeof toggleAutoSave === 'function') {
+            el.autosaveToggle.addEventListener('change', () => toggleAutoSave(el.autosaveToggle.checked));
+        }
+        if (el.resetGameButton && !el.resetGameButton.dataset.missingElement) {
+            el.resetGameButton.addEventListener('click', confirmResetGame);
+        }
+
+    } catch (error) {
+        console.error("Erreur critique lors de l'attachement des écouteurs d'événements du menu:", error);
+    }
+}
+
         menuParticles.innerHTML = '';
         
         // Nombre de particules dépend de la taille de l'écran
@@ -5133,70 +5031,41 @@ function createMenuParticles() {
 // Chargement des paramètres depuis l'état du jeu
 function loadSettings() {
     try {
-        // Récupérer les éléments DOM
-        const musicToggle = document.getElementById('music-toggle');
-        const volumeSlider = document.getElementById('volume-slider');
-        const volumeValue = document.getElementById('volume-value');
-        const visualizerToggle = document.getElementById('visualizer-toggle');
-        const darkThemeToggle = document.getElementById('dark-theme-toggle');
-        const particlesToggle = document.getElementById('particles-toggle');
-        const notificationsToggle = document.getElementById('notifications-toggle');
-        const autosaveToggle = document.getElementById('autosave-toggle');
-        
-        // S'assurer que les paramètres existent
-        if (!game.settings) {
-            game.settings = {
-                theme: 'dark',
-                showAutoSaveNotification: true,
-                autoSave: true,
-                particleEffects: true,
-                audio: {
-                    enabled: true,
-                    volume: 0.7,
-                    visualizer: true
-                }
-            };
+        const el = window.elements;
+        // S'assurer que game et game.settings existent, sinon les initialiser avec des valeurs par défaut robustes
+        if (typeof window.game === 'undefined') window.game = {};
+        if (typeof window.game.settings === 'undefined') {
+            window.game.settings = JSON.parse(JSON.stringify(getDefaultGameState().settings));
         }
-        
-        if (!game.settings.audio) {
-            game.settings.audio = {
-                enabled: true,
-                volume: 0.7,
-                visualizer: true
-            };
+        // S'assurer que game.settings.audio existe
+        if (typeof window.game.settings.audio === 'undefined') {
+            window.game.settings.audio = JSON.parse(JSON.stringify(getDefaultGameState().settings.audio));
         }
-        
+
         // Mettre à jour les contrôles
-        if (musicToggle) {
-            musicToggle.checked = game.settings.audio.enabled;
+        if (el.musicToggle && !el.musicToggle.dataset.missingElement) {
+            el.musicToggle.checked = game.settings.audio.enabled;
         }
-        
-        if (volumeSlider) {
-            volumeSlider.value = (game.settings.audio.volume * 100).toFixed(0);
-            
-            if (volumeValue) {
-                volumeValue.textContent = volumeSlider.value + '%';
+        if (el.volumeSlider && !el.volumeSlider.dataset.missingElement) {
+            el.volumeSlider.value = (game.settings.audio.volume * 100).toFixed(0);
+            if (el.volumeValue && !el.volumeValue.dataset.missingElement) {
+                el.volumeValue.textContent = el.volumeSlider.value + '%';
             }
         }
-        
-        if (visualizerToggle) {
-            visualizerToggle.checked = game.settings.audio.visualizer;
+        if (el.visualizerToggle && !el.visualizerToggle.dataset.missingElement) {
+            el.visualizerToggle.checked = game.settings.audio.visualizer;
         }
-        
-        if (darkThemeToggle) {
-            darkThemeToggle.checked = game.settings.theme === 'dark';
+        if (el.darkThemeToggle && !el.darkThemeToggle.dataset.missingElement) {
+            el.darkThemeToggle.checked = game.settings.theme === 'dark';
         }
-        
-        if (particlesToggle) {
-            particlesToggle.checked = game.settings.particleEffects !== false;
+        if (el.particlesToggle && !el.particlesToggle.dataset.missingElement) {
+            el.particlesToggle.checked = game.settings.particleEffects !== false;
         }
-        
-        if (notificationsToggle) {
-            notificationsToggle.checked = game.settings.showAutoSaveNotification !== false;
+        if (el.notificationsToggle && !el.notificationsToggle.dataset.missingElement) {
+            el.notificationsToggle.checked = game.settings.showAutoSaveNotification !== false;
         }
-        
-        if (autosaveToggle) {
-            autosaveToggle.checked = game.settings.autoSave !== false;
+        if (el.autosaveToggle && !el.autosaveToggle.dataset.missingElement) {
+            el.autosaveToggle.checked = game.settings.autoSave !== false;
         }
     } catch (error) {
         console.error("Erreur lors du chargement des paramètres:", error);
@@ -5265,33 +5134,31 @@ function toggleAutoSave(enabled) {
 // Initialiser le système audio
 function initializeAudioSystem() {
     try {
-        const bgMusic = document.getElementById('background-music');
-        const audioVisualizer = document.getElementById('audio-visualizer');
-        
-        if (!bgMusic || !audioVisualizer) return;
-        
-        // Charger les paramètres audio depuis l'état du jeu
+        const el = window.elements;
+        if (!el.backgroundMusic || el.backgroundMusic.dataset.missingElement || 
+            !el.audioVisualizer || el.audioVisualizer.dataset.missingElement ||
+            !el.volumeSlider || el.volumeSlider.dataset.missingElement || 
+            !el.audioToggle || el.audioToggle.dataset.missingElement) {
+            console.warn("Éléments audio manquants, initialisation partielle ou annulée.");
+            return;
+        }
+
         if (game && game.settings && game.settings.audio) {
-            // Définir le volume
-            bgMusic.volume = game.settings.audio.volume;
-            
-            // Activer/désactiver selon les paramètres
+            el.backgroundMusic.volume = game.settings.audio.volume;
+            el.volumeSlider.value = game.settings.audio.volume * 100;
+            if(el.volumeValue && !el.volumeValue.dataset.missingElement) el.volumeValue.textContent = el.volumeSlider.value + '%';
+
+            updateAudioIcon(game.settings.audio.enabled);
+
             if (game.settings.audio.enabled) {
-                // Attendre l'interaction utilisateur pour démarrer l'audio (politique des navigateurs)
-                document.addEventListener('click', function startAudio() {
-                    bgMusic.play().catch(e => console.log("Audio démarrage différé:", e));
-                    document.removeEventListener('click', startAudio);
-                }, { once: true });
+                startBackgroundMusic(); // Contient la logique pour l'interaction utilisateur
             }
-            
-            // Afficher/masquer le visualiseur
-            audioVisualizer.style.display = game.settings.audio.visualizer ? 'flex' : 'none';
-            
-            // Initialiser l'analyseur audio si le visualiseur est activé
-            if (game.settings.audio.visualizer) {
+            el.audioVisualizer.style.display = game.settings.audio.visualizer ? 'flex' : 'none';
+            if (game.settings.audio.visualizer && game.settings.audio.enabled) {
                 initAudioVisualizer();
             }
         }
+        console.log("Système audio initialisé.");
     } catch (error) {
         console.error("Erreur lors de l'initialisation du système audio:", error);
     }
@@ -5486,29 +5353,7 @@ function confirmResetGame() {
 }
 
 // Initialisation principale modifiée pour prendre en compte le menu
-function init() {
-    console.log('Initialisation de Nano Bot Experience v16...');
-    
-    try {
-        // Initialiser les éléments du DOM
-        initializeElements();
-        
-        // Initialiser le menu s'il n'est pas déjà initialisé
-        if (!menuInitialized) {
-            initializeMenu();
-        }
-        
-        // Supprimer l'ancien écran de chargement s'il existe
-        const oldLoadingScreen = document.getElementById('loading-screen');
-        if (oldLoadingScreen) {
-            oldLoadingScreen.remove();
-        }
-        
-        console.log("Initialisation réussie");
-    } catch (error) {
-        console.error("Erreur lors de l'initialisation:", error);
-    }
-}
+// Deuxième instance de init() (autour de la ligne 5497) supprimée. La version unifiée est insérée ci-dessous.
 
 // Fonction pour afficher une notification de sauvegarde
 function showSaveNotification(isAuto = false) {
@@ -5534,6 +5379,117 @@ function showSaveNotification(isAuto = false) {
 
 // Démarrer le jeu
 document.addEventListener('DOMContentLoaded', init);
+
+
+// Nouvelle fonction init() unifiée et corrigée
+function init() {
+    console.log('Initialisation de Nano Bot Experience v16.1...');
+    try {
+        if (typeof window.game === 'undefined') {
+            window.game = {}; // Assurer que game est défini
+        }
+        if (window.game.gameLoopId) {
+            cancelAnimationFrame(window.game.gameLoopId);
+            window.game.gameLoopId = null;
+        }
+
+        window.elements = initializeElements(); // Doit être appelé en premier
+
+        if (elements.gameContainer && !elements.gameContainer.dataset.missingElement) {
+            elements.gameContainer.style.display = 'none';
+        }
+
+        if (!window.menuInitialized) {
+            const menuSuccess = initializeMenu();
+            if (!menuSuccess) {
+                console.error("Échec critique de l'initialisation du menu. Le jeu ne peut pas démarrer.");
+                // Afficher un message d'erreur clair si le menu ne peut pas être initialisé
+                document.body.innerHTML = '<div style="color:white;background:#f00;padding:20px;text-align:center;font-family:sans-serif;"><h2>ERREUR FATALE</h2><p>Impossible d'initialiser le menu du jeu. Veuillez vérifier la console (F12) et contacter le support.</p></div>';
+                return false; // Arrêter ici si le menu échoue
+            }
+        }
+        console.log("Initialisation de base terminée. Le menu devrait être visible.");
+        return true;
+    } catch (error) {
+        console.error("Erreur majeure lors de l'initialisation (init):", error);
+        alert(`Une erreur majeure est survenue: ${error.message}. Le jeu pourrait ne pas fonctionner correctement.`);
+        // Tenter d'afficher le menu même en cas d'erreur partielle
+        try {
+            if(elements && elements.loadingOverlay) elements.loadingOverlay.classList.add('hidden');
+            if(elements && elements.mainMenu) elements.mainMenu.classList.remove('hidden');
+        } catch(e){}
+        return false;
+    }
+}
+
+// Version améliorée de startGame
+function startGame(loadSave) {
+    try {
+        if (!window.elements) {
+             console.error("Elements non initialisés avant startGame");
+             window.elements = initializeElements();
+        }
+        if (!elements.loadingOverlay || !elements.mainMenu || !elements.gameContainer) {
+            console.error("Éléments UI essentiels manquants pour startGame", elements);
+            throw new Error("Éléments UI essentiels manquants pour démarrer le jeu.");
+        }
+
+        elements.loadingOverlay.classList.remove('hidden');
+        elements.mainMenu.classList.add('hidden');
+
+        setTimeout(() => {
+            try {
+                // Pas besoin d'appeler init() à nouveau ici si elle a déjà été appelée par DOMContentLoaded
+                // Charger la sauvegarde ou démarrer une nouvelle partie
+                let gameInitialized = false;
+                if (loadSave) {
+                    gameInitialized = loadGame(); 
+                    if (!gameInitialized) {
+                        console.warn("Échec du chargement de la sauvegarde, démarrage d'une nouvelle partie.");
+                        gameInitialized = startNewGame(); 
+                    }
+                } else {
+                    gameInitialized = startNewGame();
+                }
+
+                if (!gameInitialized) {
+                    throw new Error("Impossible d'initialiser l'état du jeu (nouvelle partie ou chargement).");
+                }
+                
+                // S'assurer que les éléments sont initialisés pour le jeu lui-même
+                // initializeElements() est déjà appelé, mais on s'assure que les éléments du jeu sont prêts
+                // et que les bindings d'événements spécifiques au jeu sont faits si nécessaire.
+
+                elements.gameContainer.style.display = 'block';
+                elements.loadingOverlay.classList.add('hidden');
+                
+                startGameLoop();
+                // Initialiser le système audio pour le jeu si ce n'est pas déjà fait par le menu
+                if (typeof initializeAudioSystem === 'function' && game.settings.audio.enabled) {
+                     // Peut-être redémarrer ou s'assurer qu'il joue
+                }
+
+            } catch (innerError) {
+                console.error("Erreur interne lors du démarrage du jeu:", innerError);
+                alert(`Une erreur est survenue lors du lancement du jeu: ${innerError.message}. Veuillez essayer de recharger.`);
+                elements.loadingOverlay.classList.add('hidden');
+                elements.mainMenu.classList.remove('hidden');
+                elements.gameContainer.style.display = 'none';
+            }
+        }, 500); // Léger délai pour l'effet de chargement
+    } catch (error) {
+        console.error("Erreur en préparation du démarrage du jeu:", error);
+        alert(`Erreur de préparation: ${error.message}.`);
+        try {
+            if(elements.loadingOverlay) elements.loadingOverlay.classList.add('hidden');
+            if(elements.mainMenu) elements.mainMenu.classList.remove('hidden');
+        } catch(e){}
+    }
+}
+
+// Assurez-vous que l'appel initial à init se fait bien via DOMContentLoaded
+document.addEventListener('DOMContentLoaded', init);
+
     </script>
 </body>
 </html>
