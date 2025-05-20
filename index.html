@@ -624,6 +624,123 @@ section h2 i {
     width: 100%;
 }
 
+/* Section achievements */
+.achievements-section {
+    margin-top: 25px;
+}
+
+.achievements-section h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.achievements-bonus {
+    font-size: 0.85em;
+    background-color: rgba(100, 255, 218, 0.15);
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: var(--accent-color);
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.achievement-item {
+    background-color: var(--milestone-bg);
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid var(--producer-border);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.achievement-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(100, 255, 218, 0.03), transparent);
+    z-index: -1;
+}
+
+/* Style pour les succès verrouillés */
+.achievement-item.locked {
+    filter: grayscale(1);
+    opacity: 0.7;
+}
+
+.achievement-item.locked .achievement-icon i {
+    color: var(--description-text);
+}
+
+.achievement-item.locked .achievement-name {
+    color: var(--description-text);
+}
+
+/* Style pour les succès débloqués */
+.achievement-item.unlocked {
+    background-color: var(--milestone-unlocked-bg);
+    border-color: rgba(100, 255, 218, 0.3);
+    box-shadow: 0 0 15px rgba(100, 255, 218, 0.15);
+}
+
+.achievement-item.unlocked::before {
+    background: linear-gradient(45deg, transparent, rgba(100, 255, 218, 0.1), transparent);
+}
+
+.achievement-icon {
+    height: 40px;
+    width: 40px;
+    background-color: rgba(100, 255, 218, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.achievement-icon i {
+    font-size: 20px;
+    color: var(--accent-color);
+}
+
+.achievement-name {
+    font-weight: bold;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+    font-size: 0.95rem;
+}
+
+.achievement-desc {
+    font-size: 13px;
+    color: var(--description-text);
+    line-height: 1.3;
+    flex-grow: 1;
+}
+
+.achievement-reward {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 210, 255, 0.15);
+    font-size: 12px;
+    color: var(--accent-color);
+    width: 100%;
+}
+
 /* Section prestige */
 .prestige-section {
     text-align: center;
@@ -928,6 +1045,12 @@ footer button:hover::before {
     bottom: 30px;
 }
 
+/* Style pour la notification de succès */
+.notification.success {
+    background: linear-gradient(135deg, rgba(100, 255, 218, 0.9), rgba(0, 200, 170, 0.9));
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(100, 255, 218, 0.5);
+}
+
 /* Message de sauvegarde automatique */
 .autosave-notification {
     position: fixed;
@@ -1046,6 +1169,11 @@ footer button:hover::before {
                 <p>Multiplicateur actuel: <span id="prestige-multiplier">x1.0</span></p>
                 <p>Évolution potentielle: <span id="prestige-to-gain">0</span> niveau(x)</p>
                 <button id="prestige-button" disabled>Évoluer vers la prochaine génération</button>
+            </section>
+            
+            <section class="achievements-section">
+                <h2><i class="fas fa-trophy"></i> Succès <span class="achievements-bonus">+<span id="achievements-bonus">0</span>% de production</span></h2>
+                <div id="achievements-container" class="achievements-grid"></div>
             </section>
         </main>
 
@@ -1229,7 +1357,87 @@ let game = {
     settings: {
         showAutoSaveNotification: true,   // Afficher ou non les notifications de sauvegarde automatique
         theme: 'dark'                     // Thème actuel (dark ou light)
-    }
+    },
+    
+    // Système de succès
+    achievementBonus: 0,                  // Bonus de production (+1% par succès)
+    achievements: [
+        { 
+            id: 'achievement1',
+            name: 'Premier pas',
+            description: 'Produire 100 nanobots au total',
+            icon: 'baby',
+            unlocked: false,
+            condition: () => game.totalNanobots >= 100,
+            rewardText: '+1% de production'
+        },
+        {
+            id: 'achievement2',
+            name: 'Expansion locale',
+            description: 'Atteindre le niveau Lune',
+            icon: 'moon',
+            unlocked: false,
+            condition: () => game.expansion.milestones.find(m => m.name === "Lune")?.unlocked,
+            rewardText: '+1% de production'
+        },
+        {
+            id: 'achievement3',
+            name: 'Usine à nanobots',
+            description: 'Posséder 10 Nano-Assembleurs',
+            icon: 'industry',
+            unlocked: false,
+            condition: () => game.producers[0].count >= 10,
+            rewardText: '+1% de production'
+        },
+        {
+            id: 'achievement4',
+            name: 'Cliqueur professionnel',
+            description: 'Cliquer 100 fois',
+            icon: 'hand-pointer',
+            unlocked: false,
+            condition: () => game.stats.clickCount >= 100,
+            rewardText: '+1% de production'
+        },
+        {
+            id: 'achievement5',
+            name: 'Millionnaire',
+            description: 'Produire 1 million de nanobots au total',
+            icon: 'chart-line',
+            unlocked: false,
+            condition: () => game.totalNanobots >= 1e6,
+            rewardText: '+1% de production'
+        },
+        {
+            id: 'achievement6',
+            name: 'Premier système',
+            description: 'Atteindre le niveau Système Solaire',
+            icon: 'sun',
+            unlocked: false,
+            condition: () => game.expansion.milestones.find(m => m.name === "Système Solaire")?.unlocked,
+            rewardText: '+1% de production'
+        },
+        {
+            id: 'achievement7',
+            name: 'Collection complète',
+            description: 'Posséder au moins 1 exemplaire de chaque producteur débloqué',
+            icon: 'layer-group',
+            unlocked: false,
+            condition: () => {
+                const unlockedProducers = game.producers.filter(p => p.unlocked);
+                return unlockedProducers.every(p => p.count > 0);
+            },
+            rewardText: '+1% de production'
+        },
+        {
+            id: 'achievement8',
+            name: 'Renaissance',
+            description: 'Effectuer un prestige',
+            icon: 'sync-alt',
+            unlocked: false,
+            condition: () => game.stats.prestigeCount > 0,
+            rewardText: '+1% de production'
+        }
+    ]
 };
 
 // Éléments DOM
@@ -1251,7 +1459,9 @@ const elements = {
     saveButton: document.getElementById('save-button'),
     resetButton: document.getElementById('reset-button'),
     themeToggle: document.getElementById('theme-toggle'),
-    lastSave: document.getElementById('last-save')
+    lastSave: document.getElementById('last-save'),
+    achievementsContainer: document.getElementById('achievements-container'),
+    achievementsBonus: document.getElementById('achievements-bonus')
 };
 
 // Fonctions utilitaires
@@ -1286,6 +1496,11 @@ function calculateProduction() {
     game.temporaryBoosts.forEach(boost => {
         production *= boost.multiplier;
     });
+    
+    // Appliquer le bonus des succès (+1% par succès débloqué)
+    if (game.achievementBonus > 0) {
+        production *= (1 + (game.achievementBonus * 0.01));
+    }
     
     return production;
 }
@@ -1352,6 +1567,28 @@ function sanitizeGameState(gameState) {
         if (gameState.settings.theme !== 'dark' && gameState.settings.theme !== 'light') {
             gameState.settings.theme = 'dark';
         }
+    }
+    
+    // Vérifier les achievements
+    if (!gameState.achievements) {
+        // Copier les achievements par défaut du jeu actuel
+        gameState.achievements = JSON.parse(JSON.stringify(game.achievements));
+        gameState.achievementBonus = 0;
+    } else {
+        // S'assurer que le bonus d'achievements est correctement calculé
+        const unlockedCount = gameState.achievements.filter(a => a.unlocked).length;
+        gameState.achievementBonus = unlockedCount;
+        
+        // Vérifier si des nouveaux achievements ont été ajoutés depuis la dernière sauvegarde
+        const defaultAchievements = game.achievements;
+        
+        // Ajouter les nouveaux achievements qui n'existent pas dans la sauvegarde
+        defaultAchievements.forEach(defaultAchievement => {
+            const existingAchievement = gameState.achievements.find(a => a.id === defaultAchievement.id);
+            if (!existingAchievement) {
+                gameState.achievements.push(JSON.parse(JSON.stringify(defaultAchievement)));
+            }
+        });
     }
     
     return gameState;
@@ -1558,9 +1795,14 @@ function performPrestige() {
 }
 
 // Fonction pour créer une notification de déblocage
-function createNotification(message) {
+/**
+ * Crée une notification pour informer l'utilisateur
+ * @param {string} message - Le message à afficher
+ * @param {string} [type='info'] - Le type de notification ('info', 'success', etc.)
+ */
+function createNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = 'notification';
+    notification.className = `notification ${type}`;
     notification.textContent = message;
     
     document.body.appendChild(notification);
@@ -1570,13 +1812,38 @@ function createNotification(message) {
         notification.classList.add('show');
     }, 10);
     
-    // Suppression automatique
+    // Suppression automatique (plus long pour les succès)
+    const duration = type === 'success' ? 5000 : 3000;
     setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => {
             notification.remove();
         }, 500);
-    }, 3000);
+    }, duration);
+}
+
+/**
+ * Vérifie si de nouveaux succès ont été débloqués
+ * @returns {boolean} - True si au moins un succès a été débloqué
+ */
+function checkAchievements() {
+    let achievementUnlocked = false;
+    
+    // Parcourir tous les succès non débloqués
+    game.achievements.forEach(achievement => {
+        if (!achievement.unlocked && achievement.condition()) {
+            // Débloquer le succès
+            achievement.unlocked = true;
+            game.achievementBonus += 1; // +1% de production par succès
+            
+            // Notifier l'utilisateur avec une notification spéciale
+            createNotification(`🏆 Succès débloqué : ${achievement.name}`, 'success');
+            
+            achievementUnlocked = true;
+        }
+    });
+    
+    return achievementUnlocked;
 }
 
 // Fonction pour créer des nanobots flottants
@@ -1766,6 +2033,35 @@ function updateUI() {
     
     // Mise à jour du prestige
     updatePrestige();
+    
+    // Mise à jour des succès
+    updateAchievements();
+}
+
+/**
+ * Mettre à jour l'affichage des succès
+ */
+function updateAchievements() {
+    // Mettre à jour le bonus d'achievements
+    elements.achievementsBonus.textContent = game.achievementBonus;
+    
+    // Vider le conteneur
+    elements.achievementsContainer.innerHTML = '';
+    
+    // Afficher chaque achievement
+    game.achievements.forEach(achievement => {
+        const achievementElement = document.createElement('div');
+        achievementElement.className = `achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}`;
+        
+        achievementElement.innerHTML = `
+            <div class="achievement-icon"><i class="fas fa-${achievement.icon}"></i></div>
+            <div class="achievement-name">${achievement.name}</div>
+            <div class="achievement-desc">${achievement.description}</div>
+            <div class="achievement-reward">${achievement.rewardText}</div>
+        `;
+        
+        elements.achievementsContainer.appendChild(achievementElement);
+    });
 }
 
 // Sauvegarder le jeu
@@ -1908,8 +2204,11 @@ function gameLoop() {
     // Nettoyer les boosts temporaires expirés
     game.temporaryBoosts = game.temporaryBoosts.filter(boost => boost.expiryTime > currentTime);
     
+    // Vérifier et débloquer des succès
+    const achievementsUpdated = checkAchievements();
+    
     // Vérifier et débloquer des jalons
-    if (checkMilestones()) {
+    if (checkMilestones() || achievementsUpdated) {
         updateUI();
     } else {
         // Mise à jour des affichages qui changent constamment
@@ -1987,8 +2286,11 @@ function init() {
         // Mise à jour immédiate
         elements.nanobots.textContent = formatNumber(game.nanobots);
         
-        // Vérifier les jalons
-        if (checkMilestones()) {
+        // Vérifier les jalons et les succès
+        const achievementsUpdated = checkAchievements();
+        const milestonesUpdated = checkMilestones();
+        
+        if (milestonesUpdated || achievementsUpdated) {
             updateUI();
         }
     });
@@ -2033,4 +2335,4 @@ function init() {
 document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
-</html>
+</html>    
