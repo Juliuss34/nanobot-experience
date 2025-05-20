@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <!--
+Version 8 - Résolution des erreurs TypeError et initialisation robuste:
+- Correction de getDefaultGameState() pour retourner correctement l'objet defaultState
+- Refonte complète de sanitizeGameState() pour une fusion profonde et sécurisée
+- Amélioration de loadGame() pour utiliser la nouvelle fonction sanitizeGameState
+- Protection contre les références undefined dans game.producers.find() et game.expansion
+- Vérifications robustes de la structure du jeu avant manipulation
+- Ajout d'une fonction initializeElements() pour garantir la disponibilité des éléments DOM
+- Amélioration de startNewGame() avec gestion d'erreurs et récupération d'urgence
+- Renforcement de proceedToGame() avec vérifications des structures essentielles
+- Révision complète de init() pour garantir une initialisation correcte
+
 Version 7 - Renforcement de la robustesse et élimination des NaN:
 - Protection contre les NaN dans toutes les fonctions de calcul principales
 - Amélioration de la gestion des sauvegardes/chargements corrompus
@@ -20,20 +31,12 @@ Version 6 - Corrections des bugs d'améliorations:
 - Vérifications supplémentaires dans les fonctions d'achat d'améliorations
 - Protection contre les fonctions manquantes avec des fallbacks
 - Vérification plus robuste des références potentiellement nulles/undefined
-
-Version 5 - Corrections des bugs de chargement et de nouvelle partie:
-- Ajout des fonctions condition() manquantes pour les achievements
-- Amélioration de la copie profonde dans getDefaultGameState()
-- Correction de sanitizeGameState() pour éviter références à game.achievements
-- Amélioration de la gestion de la boucle de jeu
-- Ajout de try/catch pour éviter les erreurs critiques
-- Meilleure initialisation lors du démarrage d'une nouvelle partie
 -->
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nano Bot Experience v7</title>
+    <title>Nano Bot Experience v8</title>
     <style>
 /* Style amélioré pour Nano Bot Experience */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
@@ -1779,99 +1782,242 @@ function getProducerCost(producer) {
 }
 
 /**
- * Vérifie et corrige les valeurs NaN ou invalides dans l'état du jeu
- * @param {Object} gameState - L'état du jeu à nettoyer
+ * Version robuste qui fusionne et nettoie un état de jeu chargé avec un état par défaut
+ * @param {Object} loadedState - L'état chargé (potentiellement incomplet ou corrompu)
+ * @param {Object} defaultState - L'état par défaut complet (résultat de getDefaultGameState())
+ * @returns {Object} - Un nouvel état de jeu propre et complet
  */
-function sanitizeGameState(gameState) {
-    // Vérifier les propriétés numériques principales
-    const numericProps = ['nanobots', 'totalNanobots', 'clickValue'];
-    numericProps.forEach(prop => {
-        if (isNaN(gameState[prop]) || gameState[prop] === null || gameState[prop] === undefined) {
-            console.warn(`Valeur invalide détectée pour ${prop}, réinitialisation à la valeur par défaut`);
-            gameState[prop] = 0;
-        }
-    });
+function sanitizeGameState(loadedState, defaultState) {
+    console.log("Sanitization de l'état du jeu...");
     
-    // Vérifier les producteurs
-    if (Array.isArray(gameState.producers)) {
-        gameState.producers.forEach(producer => {
-            if (isNaN(producer.count) || producer.count < 0) {
-                producer.count = 0;
-            }
-            if (isNaN(producer.production) || producer.production < 0) {
-                // Réinitialiser à la valeur par défaut selon l'indice
-                const index = gameState.producers.indexOf(producer);
-                const defaultProduction = [0.1, 1, 10, 100, 1000, 10000, 100000][index] || 0.1;
-                producer.production = defaultProduction;
-            }
-        });
+    // Si loadedState est null/undefined ou pas un objet, retourner une copie de defaultState
+    if (!loadedState || typeof loadedState !== 'object') {
+        console.warn("État chargé invalide, utilisation de l'état par défaut");
+        return JSON.parse(JSON.stringify(defaultState));
     }
     
-    // Vérifier les données de prestige
-    if (gameState.prestige) {
-        if (isNaN(gameState.prestige.points) || gameState.prestige.points < 0) {
-            gameState.prestige.points = 0;
-        }
-        if (isNaN(gameState.prestige.multiplier) || gameState.prestige.multiplier < 1) {
-            gameState.prestige.multiplier = 1;
-        }
-    }
+    // Créer un nouvel objet à partir de defaultState
+    const sanitizedState = JSON.parse(JSON.stringify(defaultState));
     
-    // Vérifier l'expansion
-    if (gameState.expansion) {
-        if (isNaN(gameState.expansion.currentLevel) || gameState.expansion.currentLevel < 0) {
-            gameState.expansion.currentLevel = 0;
-        }
-        if (isNaN(gameState.expansion.progressToNext) || gameState.expansion.progressToNext < 0 || gameState.expansion.progressToNext > 1) {
-            gameState.expansion.progressToNext = 0;
-        }
-    }
-    
-    // Vérifier les paramètres
-    if (!gameState.settings) {
-        gameState.settings = { showAutoSaveNotification: true, theme: 'dark' };
-    } else {
-        // S'assurer que le thème est valide
-        if (gameState.settings.theme !== 'dark' && gameState.settings.theme !== 'light') {
-            gameState.settings.theme = 'dark';
-        }
-    }
-    
-    // Vérifier les achievements
-    if (!gameState.achievements) {
-        // Obtenons les achievements depuis le state par défaut plutôt que de game qui pourrait ne pas être initialisé
-        const defaultState = getDefaultGameState();
-        gameState.achievements = JSON.parse(JSON.stringify(defaultState.achievements));
-        gameState.achievementBonus = 0;
-    } else {
-        // S'assurer que le bonus d'achievements est correctement calculé
-        const unlockedCount = gameState.achievements.filter(a => a.unlocked).length;
-        gameState.achievementBonus = unlockedCount;
-        
-        // Vérifier si des nouveaux achievements ont été ajoutés depuis la dernière sauvegarde
-        const defaultState = getDefaultGameState();
-        const defaultAchievements = defaultState.achievements;
-        
-        // Ajouter les nouveaux achievements qui n'existent pas dans la sauvegarde
-        defaultAchievements.forEach(defaultAchievement => {
-            const existingAchievement = gameState.achievements.find(a => a.id === defaultAchievement.id);
-            if (!existingAchievement) {
-                // On doit faire une copie profonde pour éviter les références partagées
-                gameState.achievements.push(JSON.parse(JSON.stringify(defaultAchievement)));
+    try {
+        // 1. Copier les propriétés primitives simples avec vérification de type
+        const numericProps = ['nanobots', 'totalNanobots', 'clickValue', 'achievementBonus'];
+        numericProps.forEach(prop => {
+            if (typeof loadedState[prop] === 'number' && !isNaN(loadedState[prop])) {
+                // Pour clickValue, ne jamais descendre en dessous de 1
+                if (prop === 'clickValue') {
+                    sanitizedState[prop] = Math.max(1, loadedState[prop]);
+                } else {
+                    // Pour les autres propriétés numériques, ne jamais descendre en dessous de 0
+                    sanitizedState[prop] = Math.max(0, loadedState[prop]);
+                }
             } else {
-                // S'assurer que la fonction condition est présente
-                if (typeof existingAchievement.condition !== 'function') {
-                    existingAchievement.condition = defaultAchievement.condition;
-                }
-                // Ajouter rewardText s'il manque
-                if (!existingAchievement.rewardText) {
-                    existingAchievement.rewardText = defaultAchievement.rewardText;
-                }
+                console.warn(`Propriété numérique invalide: ${prop}, utilisation de la valeur par défaut`);
             }
         });
+        
+        // Copier les timestamps
+        if (typeof loadedState.lastUpdate === 'number' && !isNaN(loadedState.lastUpdate)) {
+            sanitizedState.lastUpdate = loadedState.lastUpdate;
+        }
+        if (typeof loadedState.lastSave === 'number' && !isNaN(loadedState.lastSave)) {
+            sanitizedState.lastSave = loadedState.lastSave;
+        }
+        
+        // 2. Fusionner les statistiques
+        if (loadedState.stats && typeof loadedState.stats === 'object') {
+            Object.keys(defaultState.stats).forEach(statKey => {
+                if (typeof loadedState.stats[statKey] === 'number' && !isNaN(loadedState.stats[statKey])) {
+                    sanitizedState.stats[statKey] = Math.max(0, loadedState.stats[statKey]);
+                }
+            });
+        }
+        
+        // 3. Fusionner les paramètres utilisateur
+        if (loadedState.settings && typeof loadedState.settings === 'object') {
+            // Conserver tous les paramètres du state par défaut
+            Object.keys(loadedState.settings).forEach(settingKey => {
+                if (settingKey in defaultState.settings) {
+                    // Cas spécial pour le thème
+                    if (settingKey === 'theme') {
+                        sanitizedState.settings.theme = 
+                            (loadedState.settings.theme === 'light' || loadedState.settings.theme === 'dark') 
+                                ? loadedState.settings.theme 
+                                : defaultState.settings.theme;
+                    } else if (typeof loadedState.settings[settingKey] === typeof defaultState.settings[settingKey]) {
+                        // Pour les autres paramètres, copier si le type correspond
+                        sanitizedState.settings[settingKey] = loadedState.settings[settingKey];
+                    }
+                }
+            });
+        }
+        
+        // 4. Fusionner les producteurs
+        if (Array.isArray(loadedState.producers)) {
+            loadedState.producers.forEach((loadedProducer, index) => {
+                if (loadedProducer && typeof loadedProducer === 'object' && index < sanitizedState.producers.length) {
+                    const sanitizedProducer = sanitizedState.producers[index];
+                    
+                    // Transférer propriétés numériques avec validation
+                    if (typeof loadedProducer.count === 'number' && !isNaN(loadedProducer.count)) {
+                        sanitizedProducer.count = Math.max(0, loadedProducer.count);
+                    }
+                    
+                    if (typeof loadedProducer.production === 'number' && !isNaN(loadedProducer.production) && loadedProducer.production > 0) {
+                        sanitizedProducer.production = loadedProducer.production;
+                    }
+                    
+                    if (typeof loadedProducer.costMultiplier === 'number' && !isNaN(loadedProducer.costMultiplier) && loadedProducer.costMultiplier >= 1) {
+                        sanitizedProducer.costMultiplier = loadedProducer.costMultiplier;
+                    }
+                    
+                    // État de déverrouillage
+                    if (typeof loadedProducer.unlocked === 'boolean') {
+                        sanitizedProducer.unlocked = loadedProducer.unlocked;
+                    }
+                }
+            });
+        }
+        
+        // 5. Fusionner les améliorations
+        if (Array.isArray(loadedState.upgrades)) {
+            loadedState.upgrades.forEach((loadedUpgrade, index) => {
+                if (loadedUpgrade && typeof loadedUpgrade === 'object' && index < sanitizedState.upgrades.length) {
+                    // Seul l'état d'achat est repris, les autres propriétés viennent de l'état par défaut
+                    if (typeof loadedUpgrade.purchased === 'boolean') {
+                        sanitizedState.upgrades[index].purchased = loadedUpgrade.purchased;
+                    }
+                    
+                    // Conserver le coût si présent
+                    if (typeof loadedUpgrade.cost === 'number' && !isNaN(loadedUpgrade.cost) && loadedUpgrade.cost > 0) {
+                        sanitizedState.upgrades[index].cost = loadedUpgrade.cost;
+                    }
+                }
+            });
+        }
+        
+        // 6. Fusionner le système de prestige
+        if (loadedState.prestige && typeof loadedState.prestige === 'object') {
+            // Points et multiplicateur
+            if (typeof loadedState.prestige.points === 'number' && !isNaN(loadedState.prestige.points)) {
+                sanitizedState.prestige.points = Math.max(0, loadedState.prestige.points);
+            }
+            
+            if (typeof loadedState.prestige.multiplier === 'number' && !isNaN(loadedState.prestige.multiplier)) {
+                sanitizedState.prestige.multiplier = Math.max(1, loadedState.prestige.multiplier);
+            }
+            
+            // État de déverrouillage
+            if (typeof loadedState.prestige.unlocked === 'boolean') {
+                sanitizedState.prestige.unlocked = loadedState.prestige.unlocked;
+            }
+            
+            // Points à gagner
+            if (typeof loadedState.prestige.toGain === 'number' && !isNaN(loadedState.prestige.toGain)) {
+                sanitizedState.prestige.toGain = Math.max(0, loadedState.prestige.toGain);
+            }
+        }
+        
+        // 7. Fusionner le système d'expansion
+        if (loadedState.expansion && typeof loadedState.expansion === 'object') {
+            // Niveau actuel
+            if (typeof loadedState.expansion.currentLevel === 'number' && !isNaN(loadedState.expansion.currentLevel)) {
+                sanitizedState.expansion.currentLevel = Math.max(0, Math.min(
+                    loadedState.expansion.currentLevel,
+                    sanitizedState.expansion.levelNames.length - 1
+                ));
+            }
+            
+            // Progression
+            if (typeof loadedState.expansion.progressToNext === 'number' && !isNaN(loadedState.expansion.progressToNext)) {
+                sanitizedState.expansion.progressToNext = Math.max(0, Math.min(1, loadedState.expansion.progressToNext));
+            }
+            
+            // État de déverrouillage
+            if (typeof loadedState.expansion.unlocked === 'boolean') {
+                sanitizedState.expansion.unlocked = loadedState.expansion.unlocked;
+            }
+            
+            // Fusionner les jalons
+            if (Array.isArray(loadedState.expansion.milestones)) {
+                loadedState.expansion.milestones.forEach((loadedMilestone, index) => {
+                    if (loadedMilestone && typeof loadedMilestone === 'object' && 
+                        index < sanitizedState.expansion.milestones.length) {
+                        // Seul l'état de déverrouillage est préservé, le reste vient de l'état par défaut
+                        if (typeof loadedMilestone.unlocked === 'boolean') {
+                            sanitizedState.expansion.milestones[index].unlocked = loadedMilestone.unlocked;
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 8. Fusionner les succès
+        if (Array.isArray(loadedState.achievements)) {
+            // Récupérer les états de déverrouillage des succès existants
+            loadedState.achievements.forEach(loadedAchievement => {
+                if (loadedAchievement && typeof loadedAchievement === 'object' && loadedAchievement.id) {
+                    const matchingAchievement = sanitizedState.achievements.find(a => a.id === loadedAchievement.id);
+                    if (matchingAchievement && typeof loadedAchievement.unlocked === 'boolean') {
+                        matchingAchievement.unlocked = loadedAchievement.unlocked;
+                    }
+                }
+            });
+            
+            // Recalculer le bonus d'achievements
+            const unlockedCount = sanitizedState.achievements.filter(a => a.unlocked).length;
+            sanitizedState.achievementBonus = unlockedCount;
+        }
+        
+        // 9. Copier les boosts temporaires si présents
+        if (Array.isArray(loadedState.temporaryBoosts)) {
+            // Filtrer pour s'assurer que tous les boosts sont valides
+            sanitizedState.temporaryBoosts = loadedState.temporaryBoosts
+                .filter(boost => 
+                    boost && 
+                    typeof boost === 'object' && 
+                    typeof boost.multiplier === 'number' && 
+                    !isNaN(boost.multiplier) &&
+                    typeof boost.expiryTime === 'number' && 
+                    !isNaN(boost.expiryTime) &&
+                    boost.expiryTime > Date.now() // Ne pas copier les boosts expirés
+                )
+                .map(boost => ({
+                    multiplier: Math.max(1, boost.multiplier),
+                    expiryTime: boost.expiryTime
+                }));
+        }
+        
+        // 10. Vérification finale des propriétés critiques
+        // Si après fusion certaines structures essentielles sont toujours manquantes, les recréer
+        if (!sanitizedState.expansion) {
+            console.error("Structure d'expansion manquante après fusion");
+            sanitizedState.expansion = JSON.parse(JSON.stringify(defaultState.expansion));
+        }
+        
+        if (!sanitizedState.prestige) {
+            console.error("Structure de prestige manquante après fusion");
+            sanitizedState.prestige = JSON.parse(JSON.stringify(defaultState.prestige));
+        }
+        
+        if (!Array.isArray(sanitizedState.producers) || sanitizedState.producers.length === 0) {
+            console.error("Producteurs manquants après fusion");
+            sanitizedState.producers = JSON.parse(JSON.stringify(defaultState.producers));
+        }
+        
+        if (!Array.isArray(sanitizedState.upgrades) || sanitizedState.upgrades.length === 0) {
+            console.error("Améliorations manquantes après fusion");
+            sanitizedState.upgrades = JSON.parse(JSON.stringify(defaultState.upgrades));
+        }
+        
+        console.log("Sanitization terminée avec succès");
+        return sanitizedState;
+        
+    } catch (error) {
+        console.error("Erreur lors de la sanitization de l'état du jeu:", error);
+        // En cas d'erreur grave, retourner l'état par défaut
+        return JSON.parse(JSON.stringify(defaultState));
     }
-    
-    return gameState;
 }
 
 // Fonction pour obtenir un état de jeu par défaut
@@ -1885,12 +2031,23 @@ function getDefaultGameState() {
         clickValue: 1,
         lastUpdate: Date.now(),
         lastSave: Date.now(),
-        // Flag pour indiquer si la game loop a déjà été démarrée
+        
+        // Flags et états du système
         gameLoopId: null,
+        saveIntervalId: null,
+        hasSaveLoaded: false,
+        singularityActive: false,
+        offlineGainNotification: null,
+        
+        // Statistiques de jeu
         stats: {
             clickCount: 0,
-            timePlayed: 0
+            playTime: 0,
+            prestigeCount: 0,
+            totalReset: 0
         },
+        
+        // Producteurs (générateurs de nanobots)
         producers: [
             { id: 'producer1', name: 'Nano-Assembleur', count: 0, baseCost: 10, costMultiplier: 1.1, production: 0.1, unlocked: true, 
               desc: "Assemble des nanobots individuellement", icon: "microchip" },
@@ -1903,24 +2060,63 @@ function getDefaultGameState() {
             { id: 'producer5', name: 'Condensateur Galactique', count: 0, baseCost: 500000, costMultiplier: 1.18, production: 1000, unlocked: false, 
               desc: "Condense la matière interstellaire en nanobots", icon: "galaxy" }
         ],
+        
+        // Améliorations
+        upgrades: [
+            { id: 'upgrade1', name: 'Protocole d\'auto-réplication', description: 'Double la valeur de vos clics', cost: 50, purchased: false, 
+              effect: function() { game.clickValue *= 2; }, icon: "hand-pointer" },
+            { id: 'upgrade2', name: 'Nano-processeurs avancés', description: 'Double la production des Nano-Assembleurs', cost: 200, purchased: false, 
+              effect: function() { 
+                  const producerIndex = game.producers.findIndex(p => p.id === 'producer1');
+                  if (producerIndex !== -1) {
+                      multiplyProducerProduction(producerIndex, 2);
+                  }
+              }, 
+              requirement: function() {
+                  const producer = game.producers.find(p => p.id === 'producer1');
+                  return producer && producer.count >= 10;
+              }, 
+              icon: "microchip" 
+            },
+            { id: 'upgrade3', name: 'Algorithmes adaptatifs', description: 'Triple la production des Réplicateurs Moléculaires', cost: 1000, purchased: false, 
+              effect: function() {
+                  const producerIndex = game.producers.findIndex(p => p.id === 'producer2');
+                  if (producerIndex !== -1) {
+                      multiplyProducerProduction(producerIndex, 3);
+                  }
+              },
+              requirement: function() {
+                  const producer = game.producers.find(p => p.id === 'producer2');
+                  return producer && producer.count >= 10;
+              },
+              icon: "brain" 
+            },
+            { id: 'upgrade4', name: 'Manipulation atomique', description: 'Double la production de tous les producteurs', cost: 5000, purchased: false, 
+              effect: function() { applyProductionMultiplier(2); }, 
+              requirement: function() { return game.totalNanobots >= 2000; }, 
+              icon: "atom" 
+            }
+        ],
+        
+        // Système de prestige
         prestige: {
             unlocked: false,
             points: 0,
             multiplier: 1,
-            required: 1e12 // 1 trillion
+            required: 1e12, // 1 trillion
+            toGain: 0
         },
-        milestones: [
-            { id: 'milestone1', required: 100, description: 'Débloque une voie de développement améliorée', reward: 'Augmente le clickValue de 1', unlocked: false, icon: 'fas fa-star' },
-            { id: 'milestone2', required: 10000, description: 'Optimisation du réseau de nanobots', reward: 'Débloque un nouveau producteur', unlocked: false, icon: 'fas fa-trophy' },
-            { id: 'milestone3', required: 1000000, description: 'Intelligence collective émergente', reward: 'Votre clic produit 2× plus de nanobots', unlocked: false, icon: 'fas fa-brain' },
-            { id: 'milestone4', required: 100000000, description: 'Intégration quantique', reward: 'Débloque un nouveau producteur avancé', unlocked: false, icon: 'fas fa-atom' },
-            { id: 'milestone5', required: 10000000000, description: 'Conscience technologique', reward: '3× production de tous les producteurs', unlocked: false, icon: 'fas fa-robot' },
-            { id: 'milestone6', required: 1000000000000, description: 'Singularité nano-technologique', reward: 'Débloque le système de Prestige', unlocked: false, icon: 'fas fa-infinity' }
-        ],
+        
+        // Système d'expansion
         expansion: {
             unlocked: false,
             currentLevel: 0,
             progressToNext: 0,
+            levelNames: [
+                "Terre", "Système Solaire", "Voie Lactée", 
+                "Groupe Local", "Super-amas Local", "Univers Observable",
+                "Multivers", "Dimensions Parallèles", "Réalité Quantique", "Omnipresence"
+            ],
             levels: [
                 { name: 'Microscopic', description: 'Les nanobots se rassemblent en colonies microscopiques' },
                 { name: 'Macroscopic', description: 'Les colonies deviennent visibles à l\'œil nu' },
@@ -1932,12 +2128,35 @@ function getDefaultGameState() {
                 { name: 'Universal', description: 'Présence dans tout l\'univers observable' },
                 { name: 'Multidimensional', description: 'Découverte et exploration d\'autres dimensions' },
                 { name: 'Omnipresent', description: 'Présence transcendant l\'espace et le temps' }
+            ],
+            milestones: [
+                { id: 'milestone1', nanobotReq: 100, name: 'Premier Jalon', description: 'Débloque une voie de développement améliorée', 
+                  icon: 'star', unlocked: false, effect: function() { game.clickValue += 1; } },
+                { id: 'milestone2', nanobotReq: 10000, name: 'Optimisation', description: 'Optimisation du réseau de nanobots', 
+                  icon: 'trophy', unlocked: false, effect: function() { game.producers[1].unlocked = true; } },
+                { id: 'milestone3', nanobotReq: 1000000, name: 'Intelligence Collective', description: 'Intelligence collective émergente', 
+                  icon: 'brain', unlocked: false, effect: function() { game.clickValue *= 2; } },
+                { id: 'milestone4', nanobotReq: 100000000, name: 'Intégration Quantique', description: 'Intégration quantique', 
+                  icon: 'atom', unlocked: false, effect: function() { game.producers[2].unlocked = true; } },
+                { id: 'milestone5', nanobotReq: 10000000000, name: 'Conscience', description: 'Conscience technologique', 
+                  icon: 'robot', unlocked: false, effect: function() { applyProductionMultiplier(3); } },
+                { id: 'milestone6', nanobotReq: 1000000000000, name: 'Singularité', description: 'Singularité nano-technologique', 
+                  icon: 'infinity', unlocked: false, effect: function() { game.prestige.unlocked = true; } }
             ]
         },
+        
+        // Paramètres utilisateur
         settings: {
             showAutoSaveNotification: true,
-            theme: 'dark'
+            theme: 'dark',
+            particleEffects: true,
+            showTutorial: true
         },
+        
+        // Boosts temporaires
+        temporaryBoosts: [],
+        
+        // Système d'accomplissements
         achievements: [
             { 
                 id: 'ach1', 
@@ -2014,6 +2233,9 @@ function getDefaultGameState() {
         ],
         achievementBonus: 0
     };
+    
+    // IMPORTANT: Retourner l'état par défaut
+    return defaultState;
 }
 
 // Fonction pour calculer les points de prestige à gagner
@@ -2325,8 +2547,6 @@ function buyProducer(index) {
 
 // Fonction pour acheter une amélioration
 function buyUpgrade(index) {
-    console.log(`Tentative d'achat de l'amélioration ${index}...`);
-    
     // Vérifier que l'index est valide
     if (index < 0 || index >= game.upgrades.length) {
         console.error(`Index d'amélioration non valide: ${index}`);
@@ -2334,15 +2554,12 @@ function buyUpgrade(index) {
     }
     
     const upgrade = game.upgrades[index];
-    console.log(`Amélioration: ${upgrade.name}, coût: ${upgrade.cost}, nanobots: ${game.nanobots}, déjà achetée: ${upgrade.purchased}`);
     
     // Vérifier si l'amélioration a une condition et si elle est remplie
     if (upgrade.requirement) {
         try {
             const requirementMet = upgrade.requirement();
-            console.log(`Condition pour ${upgrade.name}: ${requirementMet ? 'remplie' : 'non remplie'}`);
             if (!requirementMet) {
-                console.log(`Impossible d'acheter ${upgrade.name} car la condition n'est pas remplie`);
                 return;
             }
         } catch (error) {
@@ -2352,12 +2569,10 @@ function buyUpgrade(index) {
     }
     
     if (game.nanobots >= upgrade.cost && !upgrade.purchased) {
-        console.log(`Achat de l'amélioration ${upgrade.name} pour ${upgrade.cost} nanobots`);
         game.nanobots -= upgrade.cost;
         upgrade.purchased = true;
         
         try {
-            console.log(`Application de l'effet de l'amélioration ${upgrade.name}`);
             upgrade.effect();
         } catch (error) {
             console.error(`Erreur lors de l'application de l'effet pour ${upgrade.name}:`, error);
@@ -2369,8 +2584,6 @@ function buyUpgrade(index) {
         // Effets visuels
         createFloatingNanobots(20);
         createNotification(`Amélioration achetée: ${upgrade.name}`, 'success');
-    } else {
-        console.log(`Impossible d'acheter ${upgrade.name} (coût: ${upgrade.cost}, nanobots: ${game.nanobots}, déjà achetée: ${upgrade.purchased})`);
     }
 }
 
@@ -2557,18 +2770,10 @@ function updateProducers() {
 function updateUpgrades() {
     elements.upgradesContainer.innerHTML = '';
     
-    console.log("Mise à jour des améliorations...");
-    console.log("Nombre de producteurs:", game.producers.length);
-    
-    // Log des compteurs des producteurs pour le débogage
-    game.producers.forEach((producer, idx) => {
-        console.log(`Producteur ${idx}: ${producer.name}, count = ${producer.count}, id = ${producer.id}`);
-    });
-    
+    // Mise à jour des améliorations
     game.upgrades.forEach((upgrade, index) => {
         // Si l'amélioration est déjà achetée, ne pas l'afficher
         if (upgrade.purchased) {
-            console.log(`Amélioration ${upgrade.name} (${index}) : déjà achetée`);
             return;
         }
         
@@ -2576,7 +2781,6 @@ function updateUpgrades() {
         if (upgrade.requirement) {
             try {
                 const requirementMet = upgrade.requirement();
-                console.log(`Amélioration ${upgrade.name} (${index}) : condition ${requirementMet ? 'remplie' : 'non remplie'}`);
                 if (!requirementMet) return;
             } catch (error) {
                 console.error(`Erreur lors de l'évaluation de la condition pour ${upgrade.name}:`, error);
@@ -2585,7 +2789,6 @@ function updateUpgrades() {
         }
         
         const canBuy = game.nanobots >= upgrade.cost;
-        console.log(`Amélioration ${upgrade.name} (${index}) : affichée, peut acheter = ${canBuy}, coût = ${upgrade.cost}, nanobots = ${game.nanobots}`);
         
         const upgradeElement = document.createElement('div');
         upgradeElement.className = 'upgrade-item';
@@ -2791,6 +2994,11 @@ function saveGame(isAuto = false) {
 }
 
 // Charger le jeu
+/**
+ * Tente de charger la sauvegarde du jeu.
+ * Si aucune sauvegarde n'est trouvée ou si elle est corrompue, initialise une nouvelle partie.
+ * @returns {boolean} - true si une sauvegarde a été chargée avec succès, false sinon
+ */
 function loadGame() {
     const saveKey = 'nanoBotExperienceSave';
     console.log("Tentative de chargement de la sauvegarde...");
@@ -2802,161 +3010,65 @@ function loadGame() {
         // Si aucune sauvegarde n'est trouvée, initialiser avec l'état par défaut
         if (!saveData) {
             console.log("Aucune sauvegarde trouvée, initialisation d'un nouveau jeu");
-            // S'assurer qu'on crée un nouvel objet pour éviter les références partagées
-            game = JSON.parse(JSON.stringify(getDefaultGameState()));
+            const defaultState = getDefaultGameState();
+            if (!defaultState) {
+                throw new Error("Échec de la récupération de l'état par défaut");
+            }
+            game = defaultState;
+            game.hasSaveLoaded = false;
             return false;
         }
         
         hasSave = true;
         console.log("Sauvegarde trouvée, tentative de parse JSON");
         
-        let loadedGame;
+        // Tenter de parser la sauvegarde
+        let loadedState;
         try {
-            loadedGame = JSON.parse(saveData);
+            loadedState = JSON.parse(saveData);
         } catch (parseError) {
             console.error("Erreur lors du parsing JSON de la sauvegarde:", parseError);
             // Sauvegarde corrompue, la supprimer
             localStorage.removeItem(saveKey);
             createNotification("Sauvegarde corrompue détectée et supprimée. Démarrage d'une nouvelle partie.", "error");
-            game = JSON.parse(JSON.stringify(getDefaultGameState()));
+            const defaultState = getDefaultGameState();
+            if (!defaultState) {
+                throw new Error("Échec de la récupération de l'état par défaut");
+            }
+            game = defaultState;
+            game.hasSaveLoaded = false;
             return false;
         }
         
-        // S'assurer que loadedGame est bien un objet
-        if (!loadedGame || typeof loadedGame !== 'object') {
+        // S'assurer que loadedState est bien un objet
+        if (!loadedState || typeof loadedState !== 'object') {
             console.error("La sauvegarde n'est pas un objet valide");
             localStorage.removeItem(saveKey);
-            game = JSON.parse(JSON.stringify(getDefaultGameState()));
+            const defaultState = getDefaultGameState();
+            if (!defaultState) {
+                throw new Error("Échec de la récupération de l'état par défaut");
+            }
+            game = defaultState;
+            game.hasSaveLoaded = false;
             return false;
         }
         
-        // Obtenir un nouvel état par défaut pour la fusion
-        const defaultGame = getDefaultGameState();
+        // Obtenir un état par défaut pour la fusion
+        const defaultState = getDefaultGameState();
+        if (!defaultState) {
+            throw new Error("Échec de la récupération de l'état par défaut");
+        }
         
-        // Créer un nouvel objet par copie profonde pour éviter les références partagées
-        const newGame = JSON.parse(JSON.stringify(defaultGame));
-        
-        console.log("Fusion des données sauvegardées avec les valeurs par défaut");
-        
-        // Copie des propriétés chargées tout en préservant les propriétés par défaut si elles n'existent pas dans loadedGame
-        Object.keys(loadedGame).forEach(key => {
-            if (key === 'settings' && typeof loadedGame.settings === 'object') {
-                // Fusion spéciale pour les paramètres pour préserver les nouveaux paramètres
-                newGame.settings = {...defaultGame.settings, ...loadedGame.settings};
-            } else if (key === 'achievements' && Array.isArray(loadedGame.achievements)) {
-                // Fusion spéciale pour les achievements pour préserver les nouveaux succès
-                newGame.achievements = JSON.parse(JSON.stringify(defaultGame.achievements));
-                
-                // Appliquer l'état de déverrouillage des achievements sauvegardés
-                loadedGame.achievements.forEach(savedAchievement => {
-                    if (savedAchievement && typeof savedAchievement === 'object' && savedAchievement.id) {
-                        const matchingAchievement = newGame.achievements.find(a => a.id === savedAchievement.id);
-                        if (matchingAchievement && savedAchievement.unlocked) {
-                            matchingAchievement.unlocked = true;
-                        }
-                    }
-                });
-            } else if (key === 'producers' && Array.isArray(loadedGame.producers)) {
-                // Fusion spéciale pour les producteurs pour préserver la structure
-                newGame.producers = JSON.parse(JSON.stringify(defaultGame.producers));
-                
-                // Appliquer les valeurs des producteurs sauvegardés
-                loadedGame.producers.forEach((savedProducer, index) => {
-                    if (savedProducer && typeof savedProducer === 'object' && index < newGame.producers.length) {
-                        // Conserver les propriétés de base mais copier count et unlocked
-                        if (typeof savedProducer.count === 'number') {
-                            newGame.producers[index].count = Math.max(0, savedProducer.count);
-                        }
-                        if (typeof savedProducer.unlocked === 'boolean') {
-                            newGame.producers[index].unlocked = savedProducer.unlocked;
-                        }
-                        if (typeof savedProducer.production === 'number' && savedProducer.production > 0) {
-                            newGame.producers[index].production = savedProducer.production;
-                        }
-                        if (typeof savedProducer.costMultiplier === 'number' && savedProducer.costMultiplier >= 1) {
-                            newGame.producers[index].costMultiplier = savedProducer.costMultiplier;
-                        }
-                    }
-                });
-            } else if (key === 'upgrades' && Array.isArray(loadedGame.upgrades)) {
-                // Fusion spéciale pour les améliorations
-                newGame.upgrades = JSON.parse(JSON.stringify(defaultGame.upgrades));
-                
-                // Appliquer l'état des améliorations sauvegardées
-                loadedGame.upgrades.forEach((savedUpgrade, index) => {
-                    if (savedUpgrade && typeof savedUpgrade === 'object' && index < newGame.upgrades.length) {
-                        if (typeof savedUpgrade.purchased === 'boolean') {
-                            newGame.upgrades[index].purchased = savedUpgrade.purchased;
-                        }
-                    }
-                });
-            } else if (key === 'expansion' && typeof loadedGame.expansion === 'object') {
-                // Fusion spéciale pour l'expansion
-                newGame.expansion = {...defaultGame.expansion};
-                
-                // Copier les propriétés simples
-                if (typeof loadedGame.expansion.currentLevel === 'number') {
-                    newGame.expansion.currentLevel = Math.max(0, loadedGame.expansion.currentLevel);
-                }
-                if (typeof loadedGame.expansion.progressToNext === 'number') {
-                    newGame.expansion.progressToNext = Math.max(0, Math.min(1, loadedGame.expansion.progressToNext));
-                }
-                if (typeof loadedGame.expansion.unlocked === 'boolean') {
-                    newGame.expansion.unlocked = loadedGame.expansion.unlocked;
-                }
-                
-                // Copier l'état des jalons
-                if (Array.isArray(loadedGame.expansion.milestones)) {
-                    loadedGame.expansion.milestones.forEach((savedMilestone, index) => {
-                        if (savedMilestone && typeof savedMilestone === 'object' && index < newGame.expansion.milestones.length) {
-                            if (typeof savedMilestone.unlocked === 'boolean') {
-                                newGame.expansion.milestones[index].unlocked = savedMilestone.unlocked;
-                            }
-                        }
-                    });
-                }
-            } else if (key === 'prestige' && typeof loadedGame.prestige === 'object') {
-                // Fusion spéciale pour le prestige
-                newGame.prestige = {...defaultGame.prestige};
-                
-                // Copier les propriétés en s'assurant qu'elles sont valides
-                if (typeof loadedGame.prestige.points === 'number') {
-                    newGame.prestige.points = Math.max(0, loadedGame.prestige.points);
-                }
-                if (typeof loadedGame.prestige.multiplier === 'number') {
-                    newGame.prestige.multiplier = Math.max(1, loadedGame.prestige.multiplier);
-                }
-                if (typeof loadedGame.prestige.unlocked === 'boolean') {
-                    newGame.prestige.unlocked = loadedGame.prestige.unlocked;
-                }
-            } else if (key === 'nanobots' || key === 'totalNanobots' || key === 'clickValue') {
-                // Copier directement les valeurs numériques en s'assurant qu'elles sont valides
-                if (typeof loadedGame[key] === 'number') {
-                    newGame[key] = Math.max(key === 'clickValue' ? 1 : 0, loadedGame[key]);
-                }
-            } else if (key === 'stats' && typeof loadedGame.stats === 'object') {
-                // Fusion des statistiques
-                newGame.stats = {...defaultGame.stats};
-                Object.keys(loadedGame.stats).forEach(statKey => {
-                    if (typeof loadedGame.stats[statKey] === 'number') {
-                        newGame.stats[statKey] = Math.max(0, loadedGame.stats[statKey]);
-                    }
-                });
-            } else {
-                // Copie directe pour les autres propriétés
-                newGame[key] = loadedGame[key];
-            }
-        });
-        
-        // Vérifier et corriger les valeurs NaN ou invalides qui pourraient s'être introduites
-        console.log("Sanitization de l'état du jeu chargé");
-        sanitizeGameState(newGame);
+        // Fusionner et nettoyer l'état chargé avec notre fonction sanitize améliorée
+        console.log("Fusion et sanitization de l'état du jeu chargé");
+        const cleanState = sanitizeGameState(loadedState, defaultState);
         
         // Réinitialiser gameLoopId pour éviter les doublons de boucle de jeu
-        newGame.gameLoopId = null;
+        cleanState.gameLoopId = null;
+        cleanState.hasSaveLoaded = true;
         
-        // Assigner le nouvel état à game
-        game = newGame;
+        // Assigner le nouvel état propre à game
+        game = cleanState;
         
         // Calcul des gains hors ligne
         const currentTime = Date.now();
@@ -2986,27 +3098,6 @@ function loadGame() {
         // Mise à jour du temps
         game.lastUpdate = currentTime;
         
-        // Appliquer le thème avant de mettre à jour l'interface
-        if (game.settings && game.settings.theme) {
-            try {
-                applyTheme(game.settings.theme);
-            } catch (themeError) {
-                console.error("Erreur lors de l'application du thème:", themeError);
-                // Fallback au thème par défaut
-                applyTheme('dark');
-            }
-        }
-        
-        // Mettre à jour l'interface
-        try {
-            updateUI();
-            if (elements.lastSave) {
-                elements.lastSave.textContent = formatTime(game.lastSave);
-            }
-        } catch (uiError) {
-            console.error("Erreur lors de la mise à jour de l'interface:", uiError);
-        }
-        
         console.log('Jeu chargé avec succès!');
         return true; // Indique qu'une sauvegarde a été chargée avec succès
     } catch (error) {
@@ -3019,7 +3110,24 @@ function loadGame() {
         }
         
         // Initialiser avec un état par défaut propre
-        game = JSON.parse(JSON.stringify(getDefaultGameState()));
+        const defaultState = getDefaultGameState();
+        if (!defaultState) {
+            console.error("État par défaut non disponible après erreur critique");
+            // Dernier recours: créer un état minimal
+            game = {
+                nanobots: 0,
+                totalNanobots: 0,
+                clickValue: 1,
+                lastUpdate: Date.now(),
+                producers: [],
+                upgrades: [],
+                hasSaveLoaded: false
+            };
+        } else {
+            game = defaultState;
+            game.hasSaveLoaded = false;
+        }
+        
         return false;
     }
 }
@@ -3383,94 +3491,282 @@ function showStartOptions() {
 }
 
 // Fonction pour démarrer une nouvelle partie
+/**
+ * Démarre une nouvelle partie.
+ * Réinitialise complètement l'état du jeu et démarre une nouvelle partie.
+ */
 function startNewGame() {
     console.log("Démarrage d'une nouvelle partie...");
     
-    // S'assurer que la boucle de jeu précédente est arrêtée
-    stopGameLoop();
-    
-    // Créer un nouvel état de jeu par défaut (copie profonde pour éviter les références partagées)
-    game = JSON.parse(JSON.stringify(getDefaultGameState()));
-    
-    console.log("Nouveau jeu initialisé avec état par défaut");
-    
-    // Sauvegarder immédiatement le nouvel état
-    saveGame(true);
-    
-    // Continuer vers le jeu
-    proceedToGame();
-    
-    // Afficher un message de bienvenue
-    setTimeout(() => {
-        createNotification('Bienvenue dans Nano Bot Experience!', 'success');
-    }, 1000);
+    try {
+        // S'assurer que la boucle de jeu précédente est arrêtée
+        stopGameLoop();
+        
+        // Supprimer l'ancienne sauvegarde si elle existe
+        localStorage.removeItem('nanoBotExperienceSave');
+        
+        // Obtenir un nouvel état de jeu par défaut
+        const defaultState = getDefaultGameState();
+        
+        // Vérifier que l'état par défaut est valide
+        if (!defaultState || typeof defaultState !== 'object') {
+            throw new Error("État par défaut invalide obtenu");
+        }
+        
+        // Assigner le nouvel état au jeu
+        game = defaultState;
+        game.hasSaveLoaded = false;
+        
+        console.log("Nouveau jeu initialisé avec état par défaut");
+        
+        // Sauvegarder immédiatement le nouvel état
+        try {
+            saveGame(true);
+        } catch (saveError) {
+            console.error("Erreur lors de la sauvegarde initiale:", saveError);
+            // Continue même en cas d'erreur de sauvegarde
+        }
+        
+        // Continuer vers le jeu
+        proceedToGame();
+        
+        // Afficher un message de bienvenue
+        setTimeout(() => {
+            createNotification('Bienvenue dans Nano Bot Experience!', 'success');
+        }, 1000);
+    } catch (error) {
+        console.error("Erreur critique lors du démarrage d'une nouvelle partie:", error);
+        
+        // En cas d'erreur grave, créer un état minimal
+        game = {
+            nanobots: 0,
+            totalNanobots: 0,
+            clickValue: 1,
+            lastUpdate: Date.now(),
+            producers: [],
+            upgrades: [],
+            hasSaveLoaded: false
+        };
+        
+        // Tenter de continuer malgré tout
+        proceedToGame();
+        
+        createNotification("Une erreur est survenue lors du démarrage. Le jeu pourrait ne pas fonctionner correctement.", "error");
+    }
 }
 
 // Fonction pour continuer vers le jeu (après nouvelle partie ou chargement)
+/**
+ * Continue vers l'écran de jeu principal après le chargement ou la création d'une partie.
+ * Configure l'interface et démarre la boucle de jeu.
+ */
 function proceedToGame() {
     console.log("Passage au jeu principal...");
-    const loadingScreen = document.getElementById('loading-screen');
-    const gameContainer = document.querySelector('.game-container');
     
-    // S'assurer que la boucle de jeu précédente est arrêtée
-    stopGameLoop();
-    
-    // Cacher la section de prestige jusqu'au déverrouillage
-    if (!game.prestige.unlocked && document.getElementById('prestige-section')) {
-        document.getElementById('prestige-section').style.display = 'none';
-    }
-    
-    // S'assurer que le thème est correctement appliqué
-    applyTheme(game.settings.theme || 'dark');
-    
-    // Mettre à jour l'interface avec l'état actuel du jeu
-    updateUI();
-    
-    // Configurer les contrôles du jeu
-    setupGameControls();
-    
-    // Démarrer la boucle de jeu (s'assurer qu'elle n'est pas déjà en cours)
-    console.log("Démarrage de la boucle de jeu");
-    game.gameLoopId = requestAnimationFrame(gameLoop);
-    
-    // Transition vers le jeu
-    loadingScreen.classList.add('hidden');
-    
-    // Afficher le conteneur du jeu après un court délai pour la transition
-    setTimeout(() => {
-        gameContainer.style.display = 'flex';
-        
-        // Afficher le message de gain hors ligne s'il existe
-        if (game.offlineGainNotification) {
-            createNotification(game.offlineGainNotification);
-            delete game.offlineGainNotification;
+    try {
+        // Vérifier que l'état du jeu est valide
+        if (!game || typeof game !== 'object') {
+            throw new Error("État du jeu invalide");
         }
-    }, 500);
+        
+        // Vérifier que les structures essentielles existent
+        if (!game.producers || !game.upgrades || !game.prestige || !game.expansion) {
+            console.error("Structures essentielles manquantes dans l'état du jeu");
+            
+            // Tentative de récupération: obtenir un état par défaut
+            const defaultState = getDefaultGameState();
+            if (defaultState) {
+                // Sauvegarder les ressources actuelles si elles existent
+                const nanobots = typeof game.nanobots === 'number' ? game.nanobots : 0;
+                const totalNanobots = typeof game.totalNanobots === 'number' ? game.totalNanobots : 0;
+                
+                // Réinitialiser le jeu avec l'état par défaut
+                game = defaultState;
+                
+                // Restaurer les ressources
+                game.nanobots = nanobots;
+                game.totalNanobots = totalNanobots;
+                
+                console.log("État du jeu récupéré avec l'état par défaut");
+            } else {
+                throw new Error("Impossible de récupérer l'état du jeu");
+            }
+        }
+        
+        const loadingScreen = document.getElementById('loading-screen');
+        const gameContainer = document.querySelector('.game-container');
+        
+        if (!loadingScreen || !gameContainer) {
+            console.error("Éléments d'interface introuvables");
+        }
+        
+        // S'assurer que la boucle de jeu précédente est arrêtée
+        stopGameLoop();
+        
+        try {
+            // Cacher la section de prestige jusqu'au déverrouillage
+            const prestigeSection = document.getElementById('prestige-section');
+            if (prestigeSection) {
+                prestigeSection.style.display = game.prestige && game.prestige.unlocked ? 'block' : 'none';
+            }
+            
+            // S'assurer que le thème est correctement appliqué
+            if (game.settings && typeof game.settings.theme === 'string') {
+                applyTheme(game.settings.theme);
+            } else {
+                applyTheme('dark'); // Thème par défaut
+            }
+            
+            // Mettre à jour l'interface avec l'état actuel du jeu
+            updateUI();
+            
+            // Configurer les contrôles du jeu
+            setupGameControls();
+        } catch (uiError) {
+            console.error("Erreur lors de la configuration de l'interface:", uiError);
+            // Continue malgré les erreurs d'interface
+        }
+        
+        // Démarrer la boucle de jeu (s'assurer qu'elle n'est pas déjà en cours)
+        console.log("Démarrage de la boucle de jeu");
+        if (!game.gameLoopId) {
+            game.gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        // Transition vers le jeu
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden');
+        }
+        
+        // Afficher le conteneur du jeu après un court délai pour la transition
+        setTimeout(() => {
+            if (gameContainer) {
+                gameContainer.style.display = 'flex';
+            }
+            
+            // Afficher le message de gain hors ligne s'il existe
+            if (game.offlineGainNotification) {
+                createNotification(game.offlineGainNotification);
+                delete game.offlineGainNotification;
+            }
+        }, 500);
+    } catch (error) {
+        console.error("Erreur critique lors du passage au jeu principal:", error);
+        
+        // Tentative de récupération d'urgence
+        try {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+            }
+            
+            const gameContainer = document.querySelector('.game-container');
+            if (gameContainer) {
+                gameContainer.style.display = 'flex';
+            }
+            
+            // Créer un état minimal et redémarrer
+            game = getDefaultGameState() || {
+                nanobots: 0,
+                totalNanobots: 0,
+                clickValue: 1,
+                producers: [],
+                upgrades: [],
+                prestige: { unlocked: false, points: 0, multiplier: 1 },
+                expansion: { currentLevel: 0, progressToNext: 0 },
+                lastUpdate: Date.now()
+            };
+            
+            // Forcer l'interface à se mettre à jour
+            updateUI();
+            
+            // Démarrer une boucle de jeu d'urgence
+            game.gameLoopId = requestAnimationFrame(gameLoop);
+            
+            createNotification("Une erreur critique est survenue. Le jeu a été réinitialisé.", "error");
+        } catch (recoveryError) {
+            console.error("Échec de la récupération d'urgence:", recoveryError);
+            alert("Erreur critique. Veuillez recharger la page.");
+        }
+    }
 }
 
 // Fonction d'initialisation principale
+/**
+ * Fonction d'initialisation principale du jeu.
+ * Appelée au chargement de la page.
+ */
 function init() {
-    console.log('Initialisation de Nano Bot Experience v5...');
+    console.log('Initialisation de Nano Bot Experience v8...');
     
-    // S'assurer qu'il n'y a pas de boucle de jeu active
-    if (game && game.gameLoopId) {
-        stopGameLoop();
-    }
-    
-    // S'assurer que le conteneur du jeu est caché au départ
-    const gameContainer = document.querySelector('.game-container');
-    if (gameContainer) {
-        gameContainer.style.display = 'none';
-    }
-    
+    // Initialisation des éléments
     try {
-        // Charger la sauvegarde (ou initialiser une nouvelle partie)
-        const saveLoaded = loadGame();
-        console.log("État du chargement de la sauvegarde:", saveLoaded ? "Succès" : "Nouvelle partie");
+        // Initialiser game comme un objet vide pour éviter les erreurs de référence
+        if (typeof game === 'undefined') {
+            window.game = {};
+        }
         
-        // Initialiser la dernière mise à jour si elle n'existe pas
-        if (!game.lastUpdate) {
-            game.lastUpdate = Date.now();
+        // S'assurer qu'il n'y a pas de boucle de jeu active
+        if (game.gameLoopId) {
+            stopGameLoop();
+        }
+        
+        // S'assurer que le conteneur du jeu est caché au départ
+        const gameContainer = document.querySelector('.game-container');
+        if (gameContainer) {
+            gameContainer.style.display = 'none';
+        }
+        
+        // Tester si getDefaultGameState fonctionne correctement
+        const testDefaultState = getDefaultGameState();
+        if (!testDefaultState || typeof testDefaultState !== 'object') {
+            throw new Error("La fonction getDefaultGameState ne retourne pas un objet valide");
+        }
+        
+        // Vérifier que les structures essentielles sont présentes
+        if (!Array.isArray(testDefaultState.producers) || 
+            !Array.isArray(testDefaultState.upgrades) || 
+            !testDefaultState.expansion || 
+            !testDefaultState.prestige) {
+            throw new Error("L'état par défaut ne contient pas toutes les structures nécessaires");
+        }
+        
+        // Charger la sauvegarde ou initialiser une nouvelle partie
+        try {
+            const saveLoaded = loadGame();
+            console.log("État du chargement de la sauvegarde:", saveLoaded ? "Succès" : "Nouvelle partie");
+            
+            // Vérifier encore une fois que le jeu est dans un état valide
+            if (!game || typeof game !== 'object') {
+                throw new Error("État du jeu invalide après loadGame");
+            }
+            
+            // Initialiser la dernière mise à jour si elle n'existe pas
+            if (!game.lastUpdate) {
+                game.lastUpdate = Date.now();
+            }
+        } catch (loadError) {
+            console.error("Erreur lors du chargement du jeu:", loadError);
+            
+            // Récupération d'urgence
+            localStorage.removeItem('nanoBotExperienceSave');
+            game = getDefaultGameState();
+            
+            if (!game || typeof game !== 'object') {
+                throw new Error("Impossible d'obtenir un état par défaut valide");
+            }
+            
+            console.log("Récupération avec un nouvel état par défaut après erreur de chargement");
+        }
+        
+        // S'assurer que les références aux éléments du DOM sont initialisées
+        initializeElements();
+        
+        // Appliquer le thème du jeu une fois les éléments initialisés
+        if (game.settings && game.settings.theme) {
+            applyTheme(game.settings.theme);
+        } else {
+            applyTheme('dark'); // Thème par défaut
         }
         
         // Simuler un temps de chargement avant d'afficher les options de démarrage
@@ -3479,15 +3775,76 @@ function init() {
         }, 1500);
     } catch (error) {
         console.error("Erreur critique lors de l'initialisation:", error);
-        // En cas d'erreur grave, on réinitialise complètement
-        localStorage.removeItem('nanoBotExperienceSave');
-        game = JSON.parse(JSON.stringify(getDefaultGameState()));
         
-        // Afficher un message d'erreur et les options de démarrage
-        alert("Une erreur est survenue. Le jeu a été réinitialisé.");
-        setTimeout(() => {
-            showStartOptions();
-        }, 1000);
+        // En cas d'erreur grave, on réinitialise complètement
+        try {
+            localStorage.removeItem('nanoBotExperienceSave');
+            
+            // Créer un état minimal garanti
+            window.game = {
+                nanobots: 0,
+                totalNanobots: 0,
+                clickValue: 1,
+                lastUpdate: Date.now(),
+                producers: [],
+                upgrades: [],
+                prestige: { unlocked: false, points: 0, multiplier: 1 },
+                expansion: { currentLevel: 0, progressToNext: 0 },
+                settings: { theme: 'dark' }
+            };
+            
+            // Afficher un message d'erreur
+            alert("Une erreur critique est survenue. Le jeu a été réinitialisé. Rechargez la page si les problèmes persistent.");
+            
+            // Tenter d'afficher les options de démarrage malgré tout
+            setTimeout(() => {
+                try {
+                    showStartOptions();
+                } catch (startError) {
+                    console.error("Impossible d'afficher les options de démarrage:", startError);
+                    alert("Erreur critique. Veuillez recharger la page.");
+                }
+            }, 1000);
+        } catch (recoveryError) {
+            console.error("Échec de la récupération d'urgence:", recoveryError);
+            alert("Erreur critique. Veuillez recharger la page.");
+        }
+    }
+}
+
+/**
+ * Initialise les références aux éléments DOM utilisés dans le jeu.
+ * Cette fonction garantit que les éléments de l'interface sont correctement liés.
+ */
+function initializeElements() {
+    try {
+        // Recharger tous les éléments du DOM
+        window.elements = {
+            nanobots: document.getElementById('nanobots') || document.createElement('div'),
+            perSecond: document.getElementById('per-second') || document.createElement('div'),
+            clickValue: document.getElementById('click-value') || document.createElement('div'),
+            expansionLevel: document.getElementById('expansion-level') || document.createElement('div'),
+            expansionProgress: document.getElementById('expansion-progress') || document.createElement('div'),
+            expansionPercent: document.getElementById('expansion-percent') || document.createElement('div'),
+            clicker: document.getElementById('clicker') || document.createElement('div'),
+            producersContainer: document.getElementById('producers-container') || document.createElement('div'),
+            upgradesContainer: document.getElementById('upgrades-container') || document.createElement('div'),
+            milestonesContainer: document.getElementById('milestones-container') || document.createElement('div'),
+            prestigePoints: document.getElementById('prestige-points') || document.createElement('div'),
+            prestigeMultiplier: document.getElementById('prestige-multiplier') || document.createElement('div'),
+            prestigeToGain: document.getElementById('prestige-to-gain') || document.createElement('div'),
+            prestigeButton: document.getElementById('prestige-button') || document.createElement('button'),
+            saveButton: document.getElementById('save-button') || document.createElement('button'),
+            resetButton: document.getElementById('reset-button') || document.createElement('button'),
+            themeToggle: document.getElementById('theme-toggle') || document.createElement('button'),
+            lastSave: document.getElementById('last-save') || document.createElement('div'),
+            achievementsContainer: document.getElementById('achievements-container') || document.createElement('div'),
+            achievementsBonus: document.getElementById('achievements-bonus') || document.createElement('div')
+        };
+        
+        console.log("Éléments DOM initialisés avec succès");
+    } catch (error) {
+        console.error("Erreur lors de l'initialisation des éléments DOM:", error);
     }
 }
 
