@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano Bot Experience</title>
+    <link rel="stylesheet" href="css/style_ameliore.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- Conteneur principal -->
+    <div class="game-container">
+        <header>
+            <h1>Nano Bot Experience</h1>
+            <div class="subtitle">Conquérir l'univers à l'échelle nanométrique</div>
+            
+            <div class="stats">
+                <div class="stat primary">
+                    <i class="fas fa-microchip"></i>
+                    <span id="nanobots">0</span> nanobots
+                </div>
+                <div class="stat">
+                    <i class="fas fa-bolt"></i>
+                    <span id="per-second">0.0</span> par seconde
+                </div>
+                <div class="stat">
+                    <i class="fas fa-globe"></i>
+                    Expansion: <span id="expansion-level">Terre</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="clicker-section">
+                <button id="clicker">Répliquer</button>
+                <div class="click-value">+<span id="click-value">1</span> nanobots par clic</div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="expansion-progress" class="progress-fill"></div>
+                </div>
+                <div class="progress-text">Progression vers la prochaine zone: <span id="expansion-percent">0</span>%</div>
+            </div>
+
+            <div class="sections-container">
+                <section class="producers">
+                    <h2><i class="fas fa-industry"></i> Fabrication</h2>
+                    <div id="producers-container"></div>
+                </section>
+
+                <section class="upgrades">
+                    <h2><i class="fas fa-flask"></i> Recherche</h2>
+                    <div id="upgrades-container"></div>
+                </section>
+            </div>
+
+            <section class="expansion-milestones">
+                <h2><i class="fas fa-rocket"></i> Expansion</h2>
+                <div id="milestones-container" class="milestones-grid"></div>
+            </section>
+
+            <section class="prestige-section" id="prestige-section">
+                <h2><i class="fas fa-dna"></i> Évolution Nanobotique</h2>
+                <p>Niveau d'évolution actuel: <span id="prestige-points">0</span></p>
+                <p>Multiplicateur actuel: <span id="prestige-multiplier">x1.0</span></p>
+                <p>Évolution potentielle: <span id="prestige-to-gain">0</span> niveau(x)</p>
+                <button id="prestige-button" disabled>Évoluer vers la prochaine génération</button>
+            </section>
+        </main>
+
+        <footer>
+            <button id="save-button"><i class="fas fa-save"></i> Sauvegarder</button>
+            <button id="reset-button"><i class="fas fa-trash"></i> Réinitialiser</button>
+            <div class="info">
+                Dernière sauvegarde: <span id="last-save">Jamais</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Ajout du script pour les particules en arrière-plan -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Création aléatoire de particules en arrière-plan
+        function createBackgroundParticles() {
+            const container = document.querySelector('.game-container');
+            const particleCount = 15;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'floating-nanobot';
+                
+                // Positions aléatoires
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                const delay = Math.random() * 10;
+                const duration = 5 + Math.random() * 10;
+                const size = 2 + Math.random() * 3;
+                
+                particle.style.left = `${x}%`;
+                particle.style.top = `${y}%`;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.opacity = '0.3';
+                particle.style.animationDelay = `${delay}s`;
+                particle.style.animationDuration = `${duration}s`;
+                
+                container.appendChild(particle);
+                
+                // Supprimer et recréer la particule après son animation
+                setTimeout(() => {
+                    particle.remove();
+                    createParticle();
+                }, duration * 1000 + delay * 1000);
+            }
+        }
+        
+        function createParticle() {
+            const container = document.querySelector('.game-container');
+            const particle = document.createElement('div');
+            particle.className = 'floating-nanobot';
+            
+            // Positions aléatoires
+            const x = Math.random() * 100;
+            const y = 80 + Math.random() * 20; // Partir du bas
+            const duration = 5 + Math.random() * 10;
+            const size = 2 + Math.random() * 3;
+            
+            particle.style.left = `${x}%`;
+            particle.style.top = `${y}%`;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.opacity = '0.3';
+            particle.style.animationDuration = `${duration}s`;
+            
+            container.appendChild(particle);
+            
+            // Supprimer et recréer la particule après son animation
+            setTimeout(() => {
+                particle.remove();
+                createParticle();
+            }, duration * 1000);
+        }
+        
+        // Initialiser les particules
+        createBackgroundParticles();
+    });
+    </script>
+    
+    <!-- Script principal du jeu -->
+    <script src="js/game.js"></script>
+</body>
+</html>
