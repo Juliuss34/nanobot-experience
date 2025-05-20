@@ -1115,6 +1115,65 @@ footer button:hover::before {
     to { transform: rotate(360deg); }
 }
 
+/* Styles pour les options de démarrage */
+#start-options {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 30px;
+    gap: 15px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+#start-options.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.start-button {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--text-light);
+    border: none;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    min-width: 200px;
+    text-align: center;
+}
+
+.start-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.start-button:active {
+    transform: translateY(1px);
+}
+
+#continue-button {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+}
+
+#new-game-button {
+    background: linear-gradient(135deg, #ff5722, #f44336);
+}
+
+#new-game-button.warning {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(255, 87, 34, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+}
+
 /* Media queries pour la responsivité */
 @media (max-width: 768px) {
     .sections-container {
@@ -1156,7 +1215,11 @@ footer button:hover::before {
     <!-- Écran de chargement -->
     <div id="loading-screen">
         <div class="spinner"></div>
-        <p>Chargement de Nano Bot Experience...</p>
+        <p id="loading-text">Chargement de Nano Bot Experience...</p>
+        <div id="start-options" style="display: none;">
+            <button id="continue-button" class="start-button">Continuer la Partie</button>
+            <button id="new-game-button" class="start-button">Nouvelle Partie</button>
+        </div>
     </div>
     
     <!-- Conteneur principal -->
@@ -1523,6 +1586,14 @@ function formatNumber(num) {
     return (num / Math.pow(10, exponent * 3)).toFixed(2).replace(/\.00$/, '') + unit;
 }
 
+// Fonction pour arrêter la boucle de jeu proprement
+function stopGameLoop() {
+    if (game.gameLoopId) {
+        cancelAnimationFrame(game.gameLoopId);
+        game.gameLoopId = null;
+    }
+}
+
 function formatTime(timestamp) {
     if (!timestamp) return 'Jamais';
     const date = new Date(timestamp);
@@ -1640,6 +1711,76 @@ function sanitizeGameState(gameState) {
     }
     
     return gameState;
+}
+
+// Fonction pour obtenir un état de jeu par défaut
+function getDefaultGameState() {
+    return {
+        nanobots: 0,
+        totalNanobots: 0,
+        clickValue: 1,
+        lastUpdate: Date.now(),
+        lastSave: Date.now(),
+        stats: {
+            clickCount: 0,
+            timePlayed: 0
+        },
+        producers: [
+            { id: 'nanofactory', name: 'Nanofactory', description: 'Produit des nanobots de façon passive', count: 0, baseCost: 10, production: 0.1, icon: 'fas fa-industry' },
+            { id: 'nanoassembler', name: 'Nano-assembleur', description: 'Construit des composants avancés', count: 0, baseCost: 100, production: 1, icon: 'fas fa-cogs' },
+            { id: 'nanoreplicator', name: 'Nanoréplicateur', description: 'Clone automatiquement des nanobots', count: 0, baseCost: 1100, production: 10, icon: 'fas fa-clone' },
+            { id: 'quantumcompiler', name: 'Compilateur Quantique', description: 'Traduit des algorithmes en nanobots', count: 0, baseCost: 12000, production: 100, icon: 'fas fa-microchip' },
+            { id: 'hivenetwork', name: 'Réseau Ruche', description: 'Coordonne les essaims de nanobots', count: 0, baseCost: 130000, production: 1000, icon: 'fas fa-network-wired' },
+            { id: 'nanovortex', name: 'Nano-vortex', description: 'Crée des nanobots à partir d\'énergie pure', count: 0, baseCost: 1400000, production: 10000, icon: 'fas fa-atom' },
+            { id: 'nanodimension', name: 'Nano-dimension', description: 'Ouvre un portail vers une dimension de nanobots', count: 0, baseCost: 20000000, production: 100000, icon: 'fas fa-door-open' }
+        ],
+        prestige: {
+            unlocked: false,
+            points: 0,
+            multiplier: 1,
+            required: 1e12 // 1 trillion
+        },
+        milestones: [
+            { id: 'milestone1', required: 100, description: 'Débloque une voie de développement améliorée', reward: 'Augmente le clickValue de 1', unlocked: false, icon: 'fas fa-star' },
+            { id: 'milestone2', required: 10000, description: 'Optimisation du réseau de nanobots', reward: 'Débloque un nouveau producteur', unlocked: false, icon: 'fas fa-trophy' },
+            { id: 'milestone3', required: 1000000, description: 'Intelligence collective émergente', reward: 'Votre clic produit 2× plus de nanobots', unlocked: false, icon: 'fas fa-brain' },
+            { id: 'milestone4', required: 100000000, description: 'Intégration quantique', reward: 'Débloque un nouveau producteur avancé', unlocked: false, icon: 'fas fa-atom' },
+            { id: 'milestone5', required: 10000000000, description: 'Conscience technologique', reward: '3× production de tous les producteurs', unlocked: false, icon: 'fas fa-robot' },
+            { id: 'milestone6', required: 1000000000000, description: 'Singularité nano-technologique', reward: 'Débloque le système de Prestige', unlocked: false, icon: 'fas fa-infinity' }
+        ],
+        expansion: {
+            unlocked: false,
+            currentLevel: 0,
+            progressToNext: 0,
+            levels: [
+                { name: 'Microscopic', description: 'Les nanobots se rassemblent en colonies microscopiques' },
+                { name: 'Macroscopic', description: 'Les colonies deviennent visibles à l\'œil nu' },
+                { name: 'Planetary', description: 'Les nanobots commencent à se répandre sur toute la planète' },
+                { name: 'Interplanetary', description: 'Expansion vers d\'autres planètes du système solaire' },
+                { name: 'Interstellar', description: 'Les sondes de nanobots atteignent les étoiles voisines' },
+                { name: 'Galactic', description: 'Présence établie dans toute la Voie Lactée' },
+                { name: 'Intergalactic', description: 'Expansion vers d\'autres galaxies' },
+                { name: 'Universal', description: 'Présence dans tout l\'univers observable' },
+                { name: 'Multidimensional', description: 'Découverte et exploration d\'autres dimensions' },
+                { name: 'Omnipresent', description: 'Présence transcendant l\'espace et le temps' }
+            ]
+        },
+        settings: {
+            showAutoSaveNotification: true,
+            theme: 'dark'
+        },
+        achievements: [
+            { id: 'ach1', name: 'Premier Pas', description: 'Produire votre premier nanobot', unlocked: false, icon: 'fas fa-baby' },
+            { id: 'ach2', name: 'Automatisation', description: 'Acheter votre premier producteur', unlocked: false, icon: 'fas fa-cog' },
+            { id: 'ach3', name: 'Collectionneur', description: 'Posséder au moins un de chaque producteur', unlocked: false, icon: 'fas fa-layer-group' },
+            { id: 'ach4', name: 'Clicker Pro', description: 'Cliquer 100 fois', unlocked: false, icon: 'fas fa-hand-pointer' },
+            { id: 'ach5', name: 'Expansion', description: 'Atteindre le niveau d\'expansion 3', unlocked: false, icon: 'fas fa-expand-arrows-alt' },
+            { id: 'ach6', name: 'Milliardaire', description: 'Produire 1 milliard de nanobots', unlocked: false, icon: 'fas fa-money-bill-wave' },
+            { id: 'ach7', name: 'Transcendance', description: 'Effectuer votre premier prestige', unlocked: false, icon: 'fas fa-sync-alt' },
+            { id: 'ach8', name: 'Maître de l\'Univers', description: 'Atteindre le niveau d\'expansion 10', unlocked: false, icon: 'fas fa-globe' }
+        ],
+        achievementBonus: 0
+    };
 }
 
 // Fonction pour calculer les points de prestige à gagner
@@ -2165,71 +2306,98 @@ function saveGame(isAuto = false) {
 function loadGame() {
     const saveData = localStorage.getItem('nanoBotExperienceSave');
     
-    if (saveData) {
-        try {
-            const loadedGame = JSON.parse(saveData);
-            
-            // Fusionner les données chargées avec le jeu actuel d'une manière plus sûre
-            // S'assurer que toutes les propriétés du jeu sont préservées, même celles ajoutées récemment (comme settings)
-            const newGame = {...game};
-            
-            // Copie des propriétés chargées tout en préservant les propriétés par défaut si elles n'existent pas dans loadedGame
-            Object.keys(loadedGame).forEach(key => {
-                if (key === 'settings' && typeof loadedGame.settings === 'object') {
-                    // Fusion spéciale pour les paramètres pour préserver les nouveaux paramètres
-                    newGame.settings = {...newGame.settings, ...loadedGame.settings};
-                } else {
-                    newGame[key] = loadedGame[key];
-                }
-            });
-            
-            // Vérifier et corriger les valeurs NaN qui pourraient s'être introduites
-            sanitizeGameState(newGame);
-            
-            game = newGame;
-            
-            // Calcul des gains hors ligne
-            const currentTime = Date.now();
-            const offlineTime = (currentTime - game.lastUpdate) / 1000; // en secondes
-            
-            if (offlineTime > 10) { // Si plus de 10 secondes se sont écoulées
-                const production = calculateProduction();
-                const offlineGain = production * offlineTime;
-                
-                game.nanobots += offlineGain;
-                game.totalNanobots += offlineGain;
-                
-                // Vérification des nouveaux jalons
-                checkMilestones();
-                
-                // Afficher un message
-                createNotification(`Vous avez gagné ${formatNumber(offlineGain)} nanobots pendant votre absence!`);
+    // Si aucune sauvegarde n'est trouvée, initialiser avec l'état par défaut
+    if (!saveData) {
+        // Utiliser l'état par défaut
+        Object.assign(game, getDefaultGameState());
+        return false;
+    }
+    
+    try {
+        const loadedGame = JSON.parse(saveData);
+        
+        // Fusionner les données chargées avec un état de jeu vierge pour garantir toutes les propriétés
+        const defaultGame = getDefaultGameState();
+        const newGame = {...defaultGame};
+        
+        // Copie des propriétés chargées tout en préservant les propriétés par défaut si elles n'existent pas dans loadedGame
+        Object.keys(loadedGame).forEach(key => {
+            if (key === 'settings' && typeof loadedGame.settings === 'object') {
+                // Fusion spéciale pour les paramètres pour préserver les nouveaux paramètres
+                newGame.settings = {...defaultGame.settings, ...loadedGame.settings};
+            } else if (key === 'achievements' && Array.isArray(loadedGame.achievements)) {
+                // Fusion spéciale pour les achievements pour préserver les nouveaux succès
+                newGame.achievements = [...defaultGame.achievements];
+                // Appliquer l'état de déverrouillage des achievements sauvegardés
+                loadedGame.achievements.forEach(savedAchievement => {
+                    const matchingAchievement = newGame.achievements.find(a => a.id === savedAchievement.id);
+                    if (matchingAchievement && savedAchievement.unlocked) {
+                        matchingAchievement.unlocked = true;
+                    }
+                });
+            } else {
+                newGame[key] = loadedGame[key];
             }
+        });
+        
+        // Vérifier et corriger les valeurs NaN qui pourraient s'être introduites
+        sanitizeGameState(newGame);
+        
+        game = newGame;
+        
+        // Calcul des gains hors ligne
+        const currentTime = Date.now();
+        const offlineTime = (currentTime - game.lastUpdate) / 1000; // en secondes
+        
+        if (offlineTime > 10) { // Si plus de 10 secondes se sont écoulées
+            const production = calculateProduction();
+            const offlineGain = production * offlineTime;
             
-            // Mise à jour du temps
-            game.lastUpdate = currentTime;
+            game.nanobots += offlineGain;
+            game.totalNanobots += offlineGain;
             
-            // Appliquer le thème avant de mettre à jour l'interface
-            if (game.settings && game.settings.theme) {
-                applyTheme(game.settings.theme);
-            }
+            // Vérification des nouveaux jalons
+            checkMilestones();
             
-            // Mettre à jour l'interface
-            updateUI();
-            elements.lastSave.textContent = formatTime(game.lastSave);
-            
-            console.log('Jeu chargé avec succès!');
-        } catch (error) {
-            console.error('Erreur lors du chargement de la sauvegarde:', error);
+            // Stocker le message pour l'afficher plus tard
+            game.offlineGainNotification = `Vous avez gagné ${formatNumber(offlineGain)} nanobots pendant votre absence!`;
         }
+        
+        // Mise à jour du temps
+        game.lastUpdate = currentTime;
+        
+        // Appliquer le thème avant de mettre à jour l'interface
+        if (game.settings && game.settings.theme) {
+            applyTheme(game.settings.theme);
+        }
+        
+        // Mettre à jour l'interface
+        updateUI();
+        if (elements.lastSave) {
+            elements.lastSave.textContent = formatTime(game.lastSave);
+        }
+        
+        console.log('Jeu chargé avec succès!');
+        return true; // Indique qu'une sauvegarde a été chargée avec succès
+    } catch (error) {
+        console.error('Erreur lors du chargement de la sauvegarde:', error);
+        // En cas d'erreur, utiliser l'état par défaut
+        Object.assign(game, getDefaultGameState());
+        return false;
     }
 }
 
 // Réinitialiser le jeu
 function resetGame() {
     if (confirm('Êtes-vous sûr de vouloir réinitialiser tout le jeu? Vous perdrez toute votre progression, y compris les points d\'évolution!')) {
+        // Arrêter la boucle de jeu actuelle
+        stopGameLoop();
+        
+        // Supprimer la sauvegarde du localStorage
         localStorage.removeItem('nanoBotExperienceSave');
-        location.reload();
+        
+        // Démarrer une nouvelle partie
+        startNewGame();
     }
 }
 
@@ -2297,108 +2465,198 @@ function gameLoop() {
     game.lastUpdate = currentTime;
     game.stats.playTime += deltaTime;
     
-    requestAnimationFrame(gameLoop);
+    // Continuer la boucle de jeu avec requestAnimationFrame
+    game.gameLoopId = requestAnimationFrame(gameLoop);
 }
 
 // Initialisation
-function init() {
-    // Récupérer les éléments pour l'écran de chargement
+// Fonctions pour le changement de thème
+function applyTheme(theme) {
+    if (theme === 'light') {
+        document.documentElement.classList.add('light-theme');
+        if (elements.themeToggle) {
+            elements.themeToggle.querySelector('i').className = 'fas fa-sun';
+        }
+    } else {
+        document.documentElement.classList.remove('light-theme');
+        if (elements.themeToggle) {
+            elements.themeToggle.querySelector('i').className = 'fas fa-moon';
+        }
+    }
+    game.settings.theme = theme;
+}
+
+function toggleTheme() {
+    const newTheme = game.settings.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+    saveGame(true); // Sauvegarde silencieuse après changement de thème
+}
+
+// Fonction pour configurer les boutons et fonctionnalités
+function setupGameControls() {
+    // Écouteurs d'événements pour les contrôles de jeu
+    if (elements.clicker) {
+        elements.clicker.addEventListener('click', () => {
+            // Ajouter la valeur du clic
+            game.nanobots += game.clickValue * game.prestige.multiplier;
+            game.totalNanobots += game.clickValue * game.prestige.multiplier;
+            game.stats.clickCount++;
+            
+            // Effet d'animation
+            elements.nanobots.classList.add('nanobot-gain');
+            setTimeout(() => {
+                elements.nanobots.classList.remove('nanobot-gain');
+            }, 500);
+            
+            // Créer des nanobots flottants
+            createFloatingNanobots(3);
+            
+            // Mise à jour immédiate
+            elements.nanobots.textContent = formatNumber(game.nanobots);
+            
+            // Vérifier les jalons et les succès
+            const achievementsUpdated = checkAchievements();
+            const milestonesUpdated = checkMilestones();
+            
+            if (milestonesUpdated || achievementsUpdated) {
+                updateUI();
+            }
+        });
+    }
+    
+    if (elements.saveButton) elements.saveButton.addEventListener('click', () => saveGame(false));
+    if (elements.resetButton) elements.resetButton.addEventListener('click', resetGame);
+    if (elements.prestigeButton) elements.prestigeButton.addEventListener('click', performPrestige);
+    if (elements.themeToggle) elements.themeToggle.addEventListener('click', toggleTheme);
+}
+
+// Fonction pour afficher les options de démarrage
+function showStartOptions() {
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingText = document.getElementById('loading-text');
+    const startOptions = document.getElementById('start-options');
+    const continueButton = document.getElementById('continue-button');
+    const newGameButton = document.getElementById('new-game-button');
+    
+    // Masquer le spinner
+    document.querySelector('.spinner').style.display = 'none';
+    
+    // Mettre à jour le texte de chargement
+    loadingText.textContent = 'Nano Bot Experience';
+    
+    // Vérifier si une sauvegarde existe
+    const hasSave = localStorage.getItem('nanoBotExperienceSave') !== null;
+    
+    // Afficher ou masquer le bouton continuer selon l'existence d'une sauvegarde
+    if (hasSave) {
+        continueButton.style.display = 'block';
+        // Ajouter la classe d'avertissement au bouton nouvelle partie
+        newGameButton.classList.add('warning');
+    } else {
+        continueButton.style.display = 'none';
+        // Enlever la classe d'avertissement car il n'y a pas de sauvegarde à écraser
+        newGameButton.classList.remove('warning');
+    }
+    
+    // Afficher les options de démarrage
+    startOptions.style.display = 'flex';
+    
+    // Ajouter une transition pour l'apparition progressive
+    setTimeout(() => {
+        startOptions.classList.add('show');
+    }, 100);
+    
+    // Ajouter les écouteurs d'événements aux boutons
+    continueButton.addEventListener('click', proceedToGame);
+    
+    newGameButton.addEventListener('click', () => {
+        if (hasSave) {
+            // Demander confirmation si une sauvegarde existe
+            if (confirm('Êtes-vous sûr de vouloir commencer une nouvelle partie ? Votre progression actuelle sera perdue.')) {
+                startNewGame();
+            }
+        } else {
+            startNewGame();
+        }
+    });
+}
+
+// Fonction pour démarrer une nouvelle partie
+function startNewGame() {
+    // Réinitialiser le jeu avec un état par défaut
+    Object.assign(game, getDefaultGameState());
+    
+    // Sauvegarder immédiatement le nouvel état
+    saveGame(true);
+    
+    // Continuer vers le jeu
+    proceedToGame();
+    
+    // Afficher un message de bienvenue
+    setTimeout(() => {
+        createNotification('Bienvenue dans Nano Bot Experience!', 'success');
+    }, 1000);
+}
+
+// Fonction pour continuer vers le jeu (après nouvelle partie ou chargement)
+function proceedToGame() {
     const loadingScreen = document.getElementById('loading-screen');
     const gameContainer = document.querySelector('.game-container');
     
-    // S'assurer que le conteneur principal est bien caché
+    // Cacher la section de prestige jusqu'au déverrouillage
+    if (!game.prestige.unlocked && document.getElementById('prestige-section')) {
+        document.getElementById('prestige-section').style.display = 'none';
+    }
+    
+    // S'assurer que le thème est correctement appliqué
+    applyTheme(game.settings.theme || 'dark');
+    
+    // Mettre à jour l'interface avec l'état actuel du jeu
+    updateUI();
+    
+    // Configurer les contrôles du jeu
+    setupGameControls();
+    
+    // Démarrer la boucle de jeu (s'assurer qu'elle n'est pas déjà en cours)
+    if (!game.gameLoopId) {
+        game.gameLoopId = requestAnimationFrame(gameLoop);
+    }
+    
+    // Transition vers le jeu
+    loadingScreen.classList.add('hidden');
+    
+    // Afficher le conteneur du jeu après un court délai pour la transition
+    setTimeout(() => {
+        gameContainer.style.display = 'flex';
+        
+        // Afficher le message de gain hors ligne s'il existe
+        if (game.offlineGainNotification) {
+            createNotification(game.offlineGainNotification);
+            delete game.offlineGainNotification;
+        }
+    }, 500);
+}
+
+// Fonction d'initialisation principale
+function init() {
+    console.log('Initialisation de Nano Bot Experience...');
+    
+    // S'assurer que le conteneur du jeu est caché au départ
+    const gameContainer = document.querySelector('.game-container');
     gameContainer.style.display = 'none';
     
-    // Charger la sauvegarde existante
-    loadGame();
+    // Charger la sauvegarde (ou initialiser une nouvelle partie)
+    const saveLoaded = loadGame();
     
     // Initialiser la dernière mise à jour si elle n'existe pas
     if (!game.lastUpdate) {
         game.lastUpdate = Date.now();
     }
     
-    // Cacher la section de prestige jusqu'au déverrouillage
-    if (!game.prestige.unlocked) {
-        document.getElementById('prestige-section').style.display = 'none';
-    }
-    
-    // Pour une nouvelle partie, s'assurer que l'interface est mise à jour
-    if (!localStorage.getItem('nanoBotExperienceSave')) {
-        applyTheme(game.settings.theme);
-        updateUI();
-    }
-    
-    // Écouteurs d'événements
-    elements.clicker.addEventListener('click', () => {
-        // Ajouter la valeur du clic
-        game.nanobots += game.clickValue * game.prestige.multiplier;
-        game.totalNanobots += game.clickValue * game.prestige.multiplier;
-        game.stats.clickCount++;
-        
-        // Effet d'animation
-        elements.nanobots.classList.add('nanobot-gain');
-        setTimeout(() => {
-            elements.nanobots.classList.remove('nanobot-gain');
-        }, 500);
-        
-        // Créer des nanobots flottants
-        createFloatingNanobots(3);
-        
-        // Mise à jour immédiate
-        elements.nanobots.textContent = formatNumber(game.nanobots);
-        
-        // Vérifier les jalons et les succès
-        const achievementsUpdated = checkAchievements();
-        const milestonesUpdated = checkMilestones();
-        
-        if (milestonesUpdated || achievementsUpdated) {
-            updateUI();
-        }
-    });
-    
-    // Fonctions pour le changement de thème
-    function applyTheme(theme) {
-        if (theme === 'light') {
-            document.documentElement.classList.add('light-theme');
-            elements.themeToggle.querySelector('i').className = 'fas fa-sun';
-        } else {
-            document.documentElement.classList.remove('light-theme');
-            elements.themeToggle.querySelector('i').className = 'fas fa-moon';
-        }
-        game.settings.theme = theme;
-    }
-    
-    function toggleTheme() {
-        const newTheme = game.settings.theme === 'dark' ? 'light' : 'dark';
-        applyTheme(newTheme);
-        saveGame(true); // Sauvegarde silencieuse après changement de thème
-    }
-    
-    // Initialiser le thème
-    applyTheme(game.settings.theme || 'dark');
-    
-    // Ajouter les écouteurs d'événements
-    elements.saveButton.addEventListener('click', () => saveGame(false));
-    elements.resetButton.addEventListener('click', resetGame);
-    elements.prestigeButton.addEventListener('click', performPrestige);
-    elements.themeToggle.addEventListener('click', toggleTheme);
-    
-    // Démarrer la boucle de jeu
-    gameLoop();
-    
-    // Simuler un temps de chargement puis afficher le jeu
+    // Simuler un temps de chargement avant d'afficher les options de démarrage
     setTimeout(() => {
-        // Cacher l'écran de chargement
-        loadingScreen.classList.add('hidden');
-        
-        // Afficher le conteneur du jeu
-        gameContainer.style.display = 'flex';
-        
-        // Message de bienvenue (après un court délai supplémentaire)
-        setTimeout(() => {
-            createNotification('Bienvenue dans Nano Bot Experience!');
-        }, 1000);
-    }, 1500); // 1.5 secondes de chargement simulé
+        showStartOptions();
+    }, 1500);
 }
 
 // Démarrer le jeu
