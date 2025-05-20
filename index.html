@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Version 16.1 - Correction du bug de chargement et robustesse accrue:
+Version 16.2 - Nouvel écran de chargement et robustesse accrue:
 - Création d'un écran d'accueil avec menu principal
 - Option pour continuer une partie avec info de dernière sauvegarde
 - Menu de paramètres complet pour audio et effets visuels
@@ -1877,14 +1877,15 @@ input:checked + .toggle-slider:before {
         </div>
     </div>
 
-    <!-- Écran de chargement -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="spinner"></div>
-        <p class="loading-text">Chargement de Nano Bot Experience...</p>
+    <!-- Écran de chargement simplifié -->
+    <div id="initial-loading-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,20,30,0.98); z-index:3000; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; font-family: 'Orbitron', sans-serif;">
+        <div class="spinner" style="width:50px; height:50px; border:4px solid rgba(255,255,255,0.2); border-radius:50%; border-top-color:var(--primary-color, #00A9FF); animation:spin 1s linear infinite;"></div>
+        <p id="initial-loading-text" style="margin-top:20px; font-size:1.1em; color:var(--primary-color, #00A9FF);">Chargement de Nano Bot Experience...</p>
+        <p id="initial-loading-error" style="margin-top:10px; color:red; display:none;"></p>
     </div>
-    
-    <!-- Menu principal -->
-    <div id="main-menu" class="menu-system">
+
+    <!-- Menu principal (initialement caché) -->
+    <div id="main-menu" class="menu-system hidden">
         <div class="menu-particles" id="menu-particles"></div>
         
         <div class="game-logo">
@@ -4838,9 +4839,16 @@ function initializeMenu() {
         window.menuInitialized = true;
         console.log("Menu initialisé avec succès.");
 
-        // Afficher le menu et masquer l'écran de chargement si les éléments existent
-        if (elements.loadingOverlay && !elements.loadingOverlay.dataset.missingElement) {
-            elements.loadingOverlay.classList.add('hidden');
+        if (el.loadingOverlay && !el.loadingOverlay.dataset.missingElement) {
+            // Cet élément est maintenant géré par initial-loading-screen
+            // Mais on s'assure qu'il est caché s'il existe encore pour une raison quelconque
+            el.loadingOverlay.classList.add('hidden'); 
+        }
+        const initialLoadingScreen = document.getElementById('initial-loading-screen');
+        if (initialLoadingScreen) {
+            initialLoadingScreen.classList.add('hidden');
+            // Alternativement, pour le supprimer complètement du DOM après usage :
+            // initialLoadingScreen.parentNode.removeChild(initialLoadingScreen);
         }
         mainMenu.classList.remove('hidden');
         
@@ -5383,64 +5391,94 @@ document.addEventListener('DOMContentLoaded', init);
 
 // Nouvelle fonction init() unifiée et corrigée
 function init() {
-    console.log('Initialisation de Nano Bot Experience v16.1...');
+    console.log('Initialisation de Nano Bot Experience v16.2...');
+    const initialLoadingScreen = document.getElementById('initial-loading-screen');
+    const initialLoadingError = document.getElementById('initial-loading-error');
+
     try {
         if (typeof window.game === 'undefined') {
-            window.game = {}; // Assurer que game est défini
+            window.game = {}; 
         }
         if (window.game.gameLoopId) {
             cancelAnimationFrame(window.game.gameLoopId);
             window.game.gameLoopId = null;
         }
 
-        window.elements = initializeElements(); // Doit être appelé en premier
+        window.elements = initializeElements(); 
 
         if (elements.gameContainer && !elements.gameContainer.dataset.missingElement) {
             elements.gameContainer.style.display = 'none';
         }
+        
+        // Masquer l'écran de chargement initial dès que possible, après l'initialisation des éléments
+        // pour que le menu puisse prendre le relais.
+        if (initialLoadingScreen) {
+            initialLoadingScreen.classList.add('hidden');
+             // Pour le supprimer complètement après un court délai (optionnel)
+            setTimeout(() => { initialLoadingScreen.remove(); }, 1000);
+        }
 
         if (!window.menuInitialized) {
-            const menuSuccess = initializeMenu();
+            const menuSuccess = initializeMenu(); // initializeMenu gère l'affichage du mainMenu
             if (!menuSuccess) {
                 console.error("Échec critique de l'initialisation du menu. Le jeu ne peut pas démarrer.");
-                // Afficher un message d'erreur clair si le menu ne peut pas être initialisé
-                document.body.innerHTML = '<div style="color:white;background:#f00;padding:20px;text-align:center;font-family:sans-serif;"><h2>ERREUR FATALE</h2><p>Impossible d'initialiser le menu du jeu. Veuillez vérifier la console (F12) et contacter le support.</p></div>';
-                return false; // Arrêter ici si le menu échoue
+                if(initialLoadingError) {
+                    initialLoadingError.textContent = "Erreur: Impossible d'initialiser le menu du jeu.";
+                    initialLoadingError.style.display = 'block';
+                    if(initialLoadingScreen) initialLoadingScreen.classList.remove('hidden'); // Réafficher l'écran de chargement avec l'erreur
+                }
+                return false; 
             }
         }
         console.log("Initialisation de base terminée. Le menu devrait être visible.");
         return true;
     } catch (error) {
         console.error("Erreur majeure lors de l'initialisation (init):", error);
-        alert(`Une erreur majeure est survenue: ${error.message}. Le jeu pourrait ne pas fonctionner correctement.`);
-        // Tenter d'afficher le menu même en cas d'erreur partielle
+        if(initialLoadingError) {
+            initialLoadingError.textContent = `Erreur d'initialisation: ${error.message}`;
+            initialLoadingError.style.display = 'block';
+            if(initialLoadingScreen) initialLoadingScreen.classList.remove('hidden'); // Réafficher l'écran de chargement avec l'erreur
+        }
+        // Tenter d'afficher le menu même en cas d'erreur partielle, si possible
         try {
-            if(elements && elements.loadingOverlay) elements.loadingOverlay.classList.add('hidden');
-            if(elements && elements.mainMenu) elements.mainMenu.classList.remove('hidden');
-        } catch(e){}
+            if(elements && elements.mainMenu && !elements.mainMenu.dataset.missingElement) elements.mainMenu.classList.remove('hidden');
+        } catch(e){ console.error("Impossible d'afficher le menu principal après erreur init", e); }
         return false;
     }
 }
 
 // Version améliorée de startGame
 function startGame(loadSave) {
+    const initialLoadingScreen = document.getElementById('initial-loading-screen');
+    const initialLoadingText = document.getElementById('initial-loading-text');
+    const initialLoadingError = document.getElementById('initial-loading-error');
+
     try {
         if (!window.elements) {
              console.error("Elements non initialisés avant startGame");
              window.elements = initializeElements();
         }
-        if (!elements.loadingOverlay || !elements.mainMenu || !elements.gameContainer) {
+        if (!elements.mainMenu || elements.mainMenu.dataset.missingElement || 
+            !elements.gameContainer || elements.gameContainer.dataset.missingElement) {
             console.error("Éléments UI essentiels manquants pour startGame", elements);
             throw new Error("Éléments UI essentiels manquants pour démarrer le jeu.");
         }
 
-        elements.loadingOverlay.classList.remove('hidden');
+        // Afficher l'écran de chargement simplifié
+        if (initialLoadingScreen) {
+            if(initialLoadingText) initialLoadingText.textContent = "Démarrage du jeu...";
+            if(initialLoadingError) initialLoadingError.style.display = 'none';
+            initialLoadingScreen.classList.remove('hidden');
+        } else {
+            // Fallback si l'écran de chargement simplifié n'existe pas (ne devrait pas arriver)
+            document.body.insertAdjacentHTML('afterbegin', '<div id="fallback-loading" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:4000; display:flex; align-items:center; justify-content:center; color:white;">Chargement...</div>');
+        }
         elements.mainMenu.classList.add('hidden');
 
         setTimeout(() => {
             try {
-                // Pas besoin d'appeler init() à nouveau ici si elle a déjà été appelée par DOMContentLoaded
-                // Charger la sauvegarde ou démarrer une nouvelle partie
+                // La fonction init() appelée par DOMContentLoaded a déjà fait le gros du travail.
+                // Ici, on se concentre sur le chargement de l'état du jeu.
                 let gameInitialized = false;
                 if (loadSave) {
                     gameInitialized = loadGame(); 
@@ -5456,32 +5494,50 @@ function startGame(loadSave) {
                     throw new Error("Impossible d'initialiser l'état du jeu (nouvelle partie ou chargement).");
                 }
                 
-                // S'assurer que les éléments sont initialisés pour le jeu lui-même
-                // initializeElements() est déjà appelé, mais on s'assure que les éléments du jeu sont prêts
-                // et que les bindings d'événements spécifiques au jeu sont faits si nécessaire.
-
                 elements.gameContainer.style.display = 'block';
-                elements.loadingOverlay.classList.add('hidden');
                 
+                // Masquer l'écran de chargement
+                if (initialLoadingScreen) {
+                    initialLoadingScreen.classList.add('hidden');
+                    setTimeout(() => { initialLoadingScreen.remove(); }, 1000);
+                }
+                const fallbackLoading = document.getElementById('fallback-loading');
+                if(fallbackLoading) fallbackLoading.remove();
+
                 startGameLoop();
-                // Initialiser le système audio pour le jeu si ce n'est pas déjà fait par le menu
+                
+                // S'assurer que l'audio est correctement initialisé pour le contexte du jeu
                 if (typeof initializeAudioSystem === 'function' && game.settings.audio.enabled) {
-                     // Peut-être redémarrer ou s'assurer qu'il joue
+                    // Peut-être s'assurer que la musique joue si elle était en pause
+                    if(elements.backgroundMusic && elements.backgroundMusic.paused) {
+                        startBackgroundMusic(); 
+                    }
+                    if(game.settings.audio.visualizer) initAudioVisualizer();
                 }
 
             } catch (innerError) {
                 console.error("Erreur interne lors du démarrage du jeu:", innerError);
-                alert(`Une erreur est survenue lors du lancement du jeu: ${innerError.message}. Veuillez essayer de recharger.`);
-                elements.loadingOverlay.classList.add('hidden');
+                if(initialLoadingError) {
+                    initialLoadingError.textContent = `Erreur au démarrage: ${innerError.message}`;
+                    initialLoadingError.style.display = 'block';
+                    if(initialLoadingScreen) initialLoadingScreen.classList.remove('hidden');
+                } else {
+                    alert(`Une erreur est survenue lors du lancement du jeu: ${innerError.message}. Veuillez essayer de recharger.`);
+                }
                 elements.mainMenu.classList.remove('hidden');
                 elements.gameContainer.style.display = 'none';
             }
-        }, 500); // Léger délai pour l'effet de chargement
+        }, 200); // Délai réduit pour le chargement
     } catch (error) {
         console.error("Erreur en préparation du démarrage du jeu:", error);
-        alert(`Erreur de préparation: ${error.message}.`);
+         if(initialLoadingError) {
+            initialLoadingError.textContent = `Erreur de préparation: ${error.message}`;
+            initialLoadingError.style.display = 'block';
+            if(initialLoadingScreen) initialLoadingScreen.classList.remove('hidden');
+        } else {
+            alert(`Erreur de préparation: ${error.message}.`);
+        }
         try {
-            if(elements.loadingOverlay) elements.loadingOverlay.classList.add('hidden');
             if(elements.mainMenu) elements.mainMenu.classList.remove('hidden');
         } catch(e){}
     }
