@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Jeu Incrémental</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>Mini Jeu Incrémental</h1>
+            <div class="stats">
+                <div class="stat">
+                    <span id="resources">0</span> ressources
+                </div>
+                <div class="stat">
+                    <span id="per-second">0.0</span> par seconde
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="clicker-section">
+                <button id="clicker">Cliquer</button>
+                <div class="click-value">+<span id="click-value">1</span> par clic</div>
+            </div>
+
+            <div class="sections-container">
+                <section class="producers">
+                    <h2>Producteurs</h2>
+                    <div id="producers-container"></div>
+                </section>
+
+                <section class="upgrades">
+                    <h2>Améliorations</h2>
+                    <div id="upgrades-container"></div>
+                </section>
+            </div>
+
+            <section class="prestige-section" id="prestige-section">
+                <h2>Prestige</h2>
+                <p>Points de prestige actuels: <span id="prestige-points">0</span></p>
+                <p>Multiplicateur actuel: <span id="prestige-multiplier">x1.0</span></p>
+                <p>Points à gagner au reset: <span id="prestige-to-gain">0</span></p>
+                <button id="prestige-button" disabled>Reset et gagner des points de prestige</button>
+            </section>
+        </main>
+
+        <footer>
+            <button id="save-button">Sauvegarder</button>
+            <button id="reset-button">Réinitialiser</button>
+            <div class="info">
+                Dernière sauvegarde: <span id="last-save">Jamais</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
