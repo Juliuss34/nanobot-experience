@@ -1,9 +1,18 @@
 <!DOCTYPE html>
+<!--
+Version 5 - Corrections des bugs de chargement et de nouvelle partie:
+- Ajout des fonctions condition() manquantes pour les achievements
+- Amélioration de la copie profonde dans getDefaultGameState()
+- Correction de sanitizeGameState() pour éviter références à game.achievements
+- Amélioration de la gestion de la boucle de jeu
+- Ajout de try/catch pour éviter les erreurs critiques
+- Meilleure initialisation lors du démarrage d'une nouvelle partie
+-->
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nano Bot Experience</title>
+    <title>Nano Bot Experience v5</title>
     <style>
 /* Style amélioré pour Nano Bot Experience */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
@@ -1690,8 +1699,9 @@ function sanitizeGameState(gameState) {
     
     // Vérifier les achievements
     if (!gameState.achievements) {
-        // Copier les achievements par défaut du jeu actuel
-        gameState.achievements = JSON.parse(JSON.stringify(game.achievements));
+        // Obtenons les achievements depuis le state par défaut plutôt que de game qui pourrait ne pas être initialisé
+        const defaultState = getDefaultGameState();
+        gameState.achievements = JSON.parse(JSON.stringify(defaultState.achievements));
         gameState.achievementBonus = 0;
     } else {
         // S'assurer que le bonus d'achievements est correctement calculé
@@ -1699,13 +1709,24 @@ function sanitizeGameState(gameState) {
         gameState.achievementBonus = unlockedCount;
         
         // Vérifier si des nouveaux achievements ont été ajoutés depuis la dernière sauvegarde
-        const defaultAchievements = game.achievements;
+        const defaultState = getDefaultGameState();
+        const defaultAchievements = defaultState.achievements;
         
         // Ajouter les nouveaux achievements qui n'existent pas dans la sauvegarde
         defaultAchievements.forEach(defaultAchievement => {
             const existingAchievement = gameState.achievements.find(a => a.id === defaultAchievement.id);
             if (!existingAchievement) {
+                // On doit faire une copie profonde pour éviter les références partagées
                 gameState.achievements.push(JSON.parse(JSON.stringify(defaultAchievement)));
+            } else {
+                // S'assurer que la fonction condition est présente
+                if (typeof existingAchievement.condition !== 'function') {
+                    existingAchievement.condition = defaultAchievement.condition;
+                }
+                // Ajouter rewardText s'il manque
+                if (!existingAchievement.rewardText) {
+                    existingAchievement.rewardText = defaultAchievement.rewardText;
+                }
             }
         });
     }
@@ -1715,12 +1736,17 @@ function sanitizeGameState(gameState) {
 
 // Fonction pour obtenir un état de jeu par défaut
 function getDefaultGameState() {
-    return {
+    // Création d'un nouvel état par défaut à chaque appel
+    // en utilisant Date.now() à l'intérieur de la fonction pour garantir une valeur fraiche
+    const defaultState = {
+        // Valeurs de base
         nanobots: 0,
         totalNanobots: 0,
         clickValue: 1,
         lastUpdate: Date.now(),
         lastSave: Date.now(),
+        // Flag pour indiquer si la game loop a déjà été démarrée
+        gameLoopId: null,
         stats: {
             clickCount: 0,
             timePlayed: 0
@@ -1770,14 +1796,78 @@ function getDefaultGameState() {
             theme: 'dark'
         },
         achievements: [
-            { id: 'ach1', name: 'Premier Pas', description: 'Produire votre premier nanobot', unlocked: false, icon: 'fas fa-baby' },
-            { id: 'ach2', name: 'Automatisation', description: 'Acheter votre premier producteur', unlocked: false, icon: 'fas fa-cog' },
-            { id: 'ach3', name: 'Collectionneur', description: 'Posséder au moins un de chaque producteur', unlocked: false, icon: 'fas fa-layer-group' },
-            { id: 'ach4', name: 'Clicker Pro', description: 'Cliquer 100 fois', unlocked: false, icon: 'fas fa-hand-pointer' },
-            { id: 'ach5', name: 'Expansion', description: 'Atteindre le niveau d\'expansion 3', unlocked: false, icon: 'fas fa-expand-arrows-alt' },
-            { id: 'ach6', name: 'Milliardaire', description: 'Produire 1 milliard de nanobots', unlocked: false, icon: 'fas fa-money-bill-wave' },
-            { id: 'ach7', name: 'Transcendance', description: 'Effectuer votre premier prestige', unlocked: false, icon: 'fas fa-sync-alt' },
-            { id: 'ach8', name: 'Maître de l\'Univers', description: 'Atteindre le niveau d\'expansion 10', unlocked: false, icon: 'fas fa-globe' }
+            { 
+                id: 'ach1', 
+                name: 'Premier Pas', 
+                description: 'Produire votre premier nanobot', 
+                unlocked: false, 
+                icon: 'fas fa-baby',
+                condition: function() { return game.nanobots >= 1; },
+                rewardText: "+1% production"
+            },
+            { 
+                id: 'ach2', 
+                name: 'Automatisation', 
+                description: 'Acheter votre premier producteur', 
+                unlocked: false, 
+                icon: 'fas fa-cog',
+                condition: function() { return game.producers.some(p => p.count > 0); },
+                rewardText: "+1% production"
+            },
+            { 
+                id: 'ach3', 
+                name: 'Collectionneur', 
+                description: 'Posséder au moins un de chaque producteur', 
+                unlocked: false, 
+                icon: 'fas fa-layer-group',
+                condition: function() { return game.producers.every(p => p.count > 0); },
+                rewardText: "+1% production"
+            },
+            { 
+                id: 'ach4', 
+                name: 'Clicker Pro', 
+                description: 'Cliquer 100 fois', 
+                unlocked: false, 
+                icon: 'fas fa-hand-pointer',
+                condition: function() { return game.stats && game.stats.clickCount >= 100; },
+                rewardText: "+1% production"
+            },
+            { 
+                id: 'ach5', 
+                name: 'Expansion', 
+                description: 'Atteindre le niveau d\'expansion 3', 
+                unlocked: false, 
+                icon: 'fas fa-expand-arrows-alt',
+                condition: function() { return game.expansion && game.expansion.currentLevel >= 3; },
+                rewardText: "+1% production"
+            },
+            { 
+                id: 'ach6', 
+                name: 'Milliardaire', 
+                description: 'Produire 1 milliard de nanobots', 
+                unlocked: false, 
+                icon: 'fas fa-money-bill-wave',
+                condition: function() { return game.totalNanobots >= 1e9; },
+                rewardText: "+1% production"
+            },
+            { 
+                id: 'ach7', 
+                name: 'Transcendance', 
+                description: 'Effectuer votre premier prestige', 
+                unlocked: false, 
+                icon: 'fas fa-sync-alt',
+                condition: function() { return game.prestige && game.prestige.points > 0; },
+                rewardText: "+1% production"
+            },
+            { 
+                id: 'ach8', 
+                name: 'Maître de l\'Univers', 
+                description: 'Atteindre le niveau d\'expansion 10', 
+                unlocked: false, 
+                icon: 'fas fa-globe',
+                condition: function() { return game.expansion && game.expansion.currentLevel >= 10; },
+                rewardText: "+1% production"
+            }
         ],
         achievementBonus: 0
     };
@@ -2020,15 +2110,23 @@ function checkAchievements() {
     
     // Parcourir tous les succès non débloqués
     game.achievements.forEach(achievement => {
-        if (!achievement.unlocked && achievement.condition()) {
-            // Débloquer le succès
-            achievement.unlocked = true;
-            game.achievementBonus += 1; // +1% de production par succès
-            
-            // Notifier l'utilisateur avec une notification spéciale
-            createNotification(`🏆 Succès débloqué : ${achievement.name}`, 'success');
-            
-            achievementUnlocked = true;
+        // Vérifions d'abord si la condition existe et est une fonction
+        if (!achievement.unlocked && typeof achievement.condition === 'function') {
+            try {
+                // Entourer l'appel de la condition d'un try-catch pour éviter les erreurs
+                if (achievement.condition()) {
+                    // Débloquer le succès
+                    achievement.unlocked = true;
+                    game.achievementBonus += 1; // +1% de production par succès
+                    
+                    // Notifier l'utilisateur avec une notification spéciale
+                    createNotification(`🏆 Succès débloqué : ${achievement.name}`, 'success');
+                    
+                    achievementUnlocked = true;
+                }
+            } catch (error) {
+                console.error(`Erreur lors de la vérification du succès ${achievement.id}:`, error);
+            }
         }
     });
     
@@ -2304,21 +2402,35 @@ function saveGame(isAuto = false) {
 
 // Charger le jeu
 function loadGame() {
+    console.log("Tentative de chargement de la sauvegarde...");
     const saveData = localStorage.getItem('nanoBotExperienceSave');
     
     // Si aucune sauvegarde n'est trouvée, initialiser avec l'état par défaut
     if (!saveData) {
-        // Utiliser l'état par défaut
-        Object.assign(game, getDefaultGameState());
+        console.log("Aucune sauvegarde trouvée, initialisation d'un nouveau jeu");
+        // S'assurer qu'on crée un nouvel objet pour éviter les références partagées
+        game = JSON.parse(JSON.stringify(getDefaultGameState()));
         return false;
     }
     
     try {
+        console.log("Sauvegarde trouvée, tentative de parse JSON");
         const loadedGame = JSON.parse(saveData);
         
-        // Fusionner les données chargées avec un état de jeu vierge pour garantir toutes les propriétés
+        // S'assurer que loadedGame est bien un objet
+        if (!loadedGame || typeof loadedGame !== 'object') {
+            console.error("La sauvegarde n'est pas un objet valide");
+            game = JSON.parse(JSON.stringify(getDefaultGameState()));
+            return false;
+        }
+        
+        // Obtenir un nouvel état par défaut pour la fusion
         const defaultGame = getDefaultGameState();
-        const newGame = {...defaultGame};
+        
+        // Créer un nouvel objet par copie profonde pour éviter les références partagées
+        const newGame = JSON.parse(JSON.stringify(defaultGame));
+        
+        console.log("Fusion des données sauvegardées avec les valeurs par défaut");
         
         // Copie des propriétés chargées tout en préservant les propriétés par défaut si elles n'existent pas dans loadedGame
         Object.keys(loadedGame).forEach(key => {
@@ -2327,7 +2439,7 @@ function loadGame() {
                 newGame.settings = {...defaultGame.settings, ...loadedGame.settings};
             } else if (key === 'achievements' && Array.isArray(loadedGame.achievements)) {
                 // Fusion spéciale pour les achievements pour préserver les nouveaux succès
-                newGame.achievements = [...defaultGame.achievements];
+                newGame.achievements = JSON.parse(JSON.stringify(defaultGame.achievements));
                 // Appliquer l'état de déverrouillage des achievements sauvegardés
                 loadedGame.achievements.forEach(savedAchievement => {
                     const matchingAchievement = newGame.achievements.find(a => a.id === savedAchievement.id);
@@ -2341,8 +2453,13 @@ function loadGame() {
         });
         
         // Vérifier et corriger les valeurs NaN qui pourraient s'être introduites
+        console.log("Sanitization de l'état du jeu chargé");
         sanitizeGameState(newGame);
         
+        // Réinitialiser gameLoopId pour éviter les doublons de boucle de jeu
+        newGame.gameLoopId = null;
+        
+        // Assigner le nouvel état à game
         game = newGame;
         
         // Calcul des gains hors ligne
@@ -2583,8 +2700,15 @@ function showStartOptions() {
 
 // Fonction pour démarrer une nouvelle partie
 function startNewGame() {
-    // Réinitialiser le jeu avec un état par défaut
-    Object.assign(game, getDefaultGameState());
+    console.log("Démarrage d'une nouvelle partie...");
+    
+    // S'assurer que la boucle de jeu précédente est arrêtée
+    stopGameLoop();
+    
+    // Créer un nouvel état de jeu par défaut (copie profonde pour éviter les références partagées)
+    game = JSON.parse(JSON.stringify(getDefaultGameState()));
+    
+    console.log("Nouveau jeu initialisé avec état par défaut");
     
     // Sauvegarder immédiatement le nouvel état
     saveGame(true);
@@ -2600,8 +2724,12 @@ function startNewGame() {
 
 // Fonction pour continuer vers le jeu (après nouvelle partie ou chargement)
 function proceedToGame() {
+    console.log("Passage au jeu principal...");
     const loadingScreen = document.getElementById('loading-screen');
     const gameContainer = document.querySelector('.game-container');
+    
+    // S'assurer que la boucle de jeu précédente est arrêtée
+    stopGameLoop();
     
     // Cacher la section de prestige jusqu'au déverrouillage
     if (!game.prestige.unlocked && document.getElementById('prestige-section')) {
@@ -2618,9 +2746,8 @@ function proceedToGame() {
     setupGameControls();
     
     // Démarrer la boucle de jeu (s'assurer qu'elle n'est pas déjà en cours)
-    if (!game.gameLoopId) {
-        game.gameLoopId = requestAnimationFrame(gameLoop);
-    }
+    console.log("Démarrage de la boucle de jeu");
+    game.gameLoopId = requestAnimationFrame(gameLoop);
     
     // Transition vers le jeu
     loadingScreen.classList.add('hidden');
@@ -2639,24 +2766,45 @@ function proceedToGame() {
 
 // Fonction d'initialisation principale
 function init() {
-    console.log('Initialisation de Nano Bot Experience...');
+    console.log('Initialisation de Nano Bot Experience v5...');
+    
+    // S'assurer qu'il n'y a pas de boucle de jeu active
+    if (game && game.gameLoopId) {
+        stopGameLoop();
+    }
     
     // S'assurer que le conteneur du jeu est caché au départ
     const gameContainer = document.querySelector('.game-container');
-    gameContainer.style.display = 'none';
-    
-    // Charger la sauvegarde (ou initialiser une nouvelle partie)
-    const saveLoaded = loadGame();
-    
-    // Initialiser la dernière mise à jour si elle n'existe pas
-    if (!game.lastUpdate) {
-        game.lastUpdate = Date.now();
+    if (gameContainer) {
+        gameContainer.style.display = 'none';
     }
     
-    // Simuler un temps de chargement avant d'afficher les options de démarrage
-    setTimeout(() => {
-        showStartOptions();
-    }, 1500);
+    try {
+        // Charger la sauvegarde (ou initialiser une nouvelle partie)
+        const saveLoaded = loadGame();
+        console.log("État du chargement de la sauvegarde:", saveLoaded ? "Succès" : "Nouvelle partie");
+        
+        // Initialiser la dernière mise à jour si elle n'existe pas
+        if (!game.lastUpdate) {
+            game.lastUpdate = Date.now();
+        }
+        
+        // Simuler un temps de chargement avant d'afficher les options de démarrage
+        setTimeout(() => {
+            showStartOptions();
+        }, 1500);
+    } catch (error) {
+        console.error("Erreur critique lors de l'initialisation:", error);
+        // En cas d'erreur grave, on réinitialise complètement
+        localStorage.removeItem('nanoBotExperienceSave');
+        game = JSON.parse(JSON.stringify(getDefaultGameState()));
+        
+        // Afficher un message d'erreur et les options de démarrage
+        alert("Une erreur est survenue. Le jeu a été réinitialisé.");
+        setTimeout(() => {
+            showStartOptions();
+        }, 1000);
+    }
 }
 
 // Démarrer le jeu
