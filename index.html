@@ -1,5 +1,12 @@
 <!DOCTYPE html>
 <!--
+Version 12 - Ajout de thèmes de couleurs personnalisables:
+- Ajout de nouveaux thèmes de couleurs: Vert Cybernétique, Orange Solaire, Violet Quantique
+- Implémentation d'un sélecteur de thèmes d'accent dans le footer
+- Ajout de la propriété accentColorTheme dans game.settings
+- Persistance du choix de couleur à travers les sauvegardes
+- Compatible avec le thème clair/sombre existant
+
 Version 11 - Amélioration de la robustesse et traçabilité:
 - Ajout de vérifications critiques dans saveGame pour les états undefined
 - Amélioration de sanitizeGameState avec vérification rigoureuse des arguments
@@ -50,7 +57,7 @@ Version 6 - Corrections des bugs d'améliorations:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nano Bot Experience v11</title>
+    <title>Nano Bot Experience v12</title>
     <style>
 /* Style amélioré pour Nano Bot Experience */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
@@ -109,6 +116,51 @@ Version 6 - Corrections des bugs d'améliorations:
     --footer-text: #4a5568;
     --stars-opacity: 0.03;
     --grid-color: rgba(0, 119, 204, 0.05);
+}
+
+/* Thème Vert Cybernétique */
+body.theme-cyber-green {
+    --primary-color: #00ff66;
+    --primary-glow: rgba(0, 255, 102, 0.5);
+    --accent-color: #50ffb0;
+    --accent-glow: rgba(80, 255, 176, 0.5);
+    --gradient-blue: linear-gradient(135deg, #00b359, #00ff88);
+    --gradient-green: linear-gradient(135deg, #00cc55, #33ffaa);
+    --gradient-purple: linear-gradient(135deg, #4d8066, #00ff88);
+    --border-glow: 0 0 20px var(--primary-glow);
+    --producer-border: rgba(0, 255, 102, 0.15);
+    --producer-hover-border: rgba(0, 255, 102, 0.3);
+    --grid-color: rgba(0, 255, 102, 0.05);
+}
+
+/* Thème Orange Solaire */
+body.theme-solar-orange {
+    --primary-color: #ff7700;
+    --primary-glow: rgba(255, 119, 0, 0.5);
+    --accent-color: #ffaa40;
+    --accent-glow: rgba(255, 170, 64, 0.5);
+    --gradient-blue: linear-gradient(135deg, #e66000, #ff9933);
+    --gradient-green: linear-gradient(135deg, #ff6600, #ffcc00);
+    --gradient-purple: linear-gradient(135deg, #cc5200, #ff9933);
+    --border-glow: 0 0 20px var(--primary-glow);
+    --producer-border: rgba(255, 119, 0, 0.15);
+    --producer-hover-border: rgba(255, 119, 0, 0.3);
+    --grid-color: rgba(255, 119, 0, 0.05);
+}
+
+/* Thème Violet Quantique */
+body.theme-quantum-purple {
+    --primary-color: #9933ff;
+    --primary-glow: rgba(153, 51, 255, 0.5);
+    --accent-color: #bb66ff;
+    --accent-glow: rgba(187, 102, 255, 0.5);
+    --gradient-blue: linear-gradient(135deg, #7700cc, #aa33ff);
+    --gradient-green: linear-gradient(135deg, #8800ff, #cc66ff);
+    --gradient-purple: linear-gradient(135deg, #6600cc, #bb33ff);
+    --border-glow: 0 0 20px var(--primary-glow);
+    --producer-border: rgba(153, 51, 255, 0.15);
+    --producer-hover-border: rgba(153, 51, 255, 0.3);
+    --grid-color: rgba(153, 51, 255, 0.05);
 }
 
 /* Animations globales */
@@ -1000,6 +1052,51 @@ footer button:hover::before {
     color: var(--footer-text);
 }
 
+/* Sélecteur de thèmes de couleurs */
+#color-picker-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+    gap: 10px;
+}
+
+.color-option {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.active {
+    border-color: var(--text-bright);
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.color-option[data-theme="default-blue"] {
+    background: linear-gradient(135deg, #0277bd, #00c9ff);
+}
+
+.color-option[data-theme="cyber-green"] {
+    background: linear-gradient(135deg, #00b359, #00ff88);
+}
+
+.color-option[data-theme="solar-orange"] {
+    background: linear-gradient(135deg, #e66000, #ff9933);
+}
+
+.color-option[data-theme="quantum-purple"] {
+    background: linear-gradient(135deg, #7700cc, #aa33ff);
+}
+
 /* Animation pour les gains de ressources */
 @keyframes nanobot-gain {
     0% {
@@ -1343,6 +1440,12 @@ footer button:hover::before {
             </div>
             <div class="info">
                 Dernière sauvegarde: <span id="last-save">Jamais</span>
+            </div>
+            <div id="color-picker-container">
+                <button class="color-option" data-theme="default-blue" title="Bleu Défaut"></button>
+                <button class="color-option" data-theme="cyber-green" title="Vert Cybernétique"></button>
+                <button class="color-option" data-theme="solar-orange" title="Orange Solaire"></button>
+                <button class="color-option" data-theme="quantum-purple" title="Violet Quantique"></button>
             </div>
         </footer>
     </div>
@@ -1875,6 +1978,15 @@ function sanitizeGameState(loadedState, defaultState) {
                             (loadedState.settings.theme === 'light' || loadedState.settings.theme === 'dark') 
                                 ? loadedState.settings.theme 
                                 : defaultState.settings.theme;
+                    } 
+                    // Cas spécial pour le thème d'accent
+                    else if (settingKey === 'accentColorTheme') {
+                        const validAccentThemes = ['default-blue', 'cyber-green', 'solar-orange', 'quantum-purple'];
+                        sanitizedState.settings.accentColorTheme = 
+                            (typeof loadedState.settings.accentColorTheme === 'string' && 
+                             validAccentThemes.includes(loadedState.settings.accentColorTheme))
+                                ? loadedState.settings.accentColorTheme
+                                : defaultState.settings.accentColorTheme;
                     } else if (typeof loadedState.settings[settingKey] === typeof defaultState.settings[settingKey]) {
                         // Pour les autres paramètres, copier si le type correspond
                         sanitizedState.settings[settingKey] = loadedState.settings[settingKey];
@@ -2180,6 +2292,7 @@ function getDefaultGameState() {
         settings: {
             showAutoSaveNotification: true,
             theme: 'dark',
+            accentColorTheme: 'default-blue',
             particleEffects: true,
             showTutorial: true
         },
@@ -3114,6 +3227,11 @@ function loadGame() {
         game = cleanState;
         console.log('État de game APRÈS sanitizeGameState (chargement existant):', JSON.parse(JSON.stringify(game)));
         
+        // Appliquer le thème d'accent sauvegardé
+        if (game.settings && typeof game.settings.accentColorTheme === 'string') {
+            applyAccentColorTheme(game.settings.accentColorTheme);
+        }
+        
         // Calcul des gains hors ligne
         const currentTime = Date.now();
         const lastUpdate = Number(game.lastUpdate) || currentTime;
@@ -3385,6 +3503,10 @@ function gameLoop() {
 
 // Initialisation
 // Fonctions pour le changement de thème
+/**
+ * Applique le thème de base (clair/sombre) de l'interface
+ * @param {string} theme - Le thème à appliquer ('light' ou 'dark')
+ */
 function applyTheme(theme) {
     try {
         // Vérifier que le thème est valide, sinon utiliser le thème sombre par défaut
@@ -3423,6 +3545,86 @@ function applyTheme(theme) {
         return true;
     } catch (error) {
         console.error("Erreur lors de l'application du thème:", error);
+        return false;
+    }
+}
+
+/**
+ * Applique le thème de couleur d'accent à l'interface
+ * @param {string} themeName - Le nom du thème d'accent ('default-blue', 'cyber-green', etc.)
+ */
+function applyAccentColorTheme(themeName) {
+    try {
+        console.log(`Application du thème d'accent: ${themeName}`);
+        
+        // Valider le thème
+        const validThemes = ['default-blue', 'cyber-green', 'solar-orange', 'quantum-purple'];
+        if (!validThemes.includes(themeName)) {
+            console.warn(`Thème d'accent invalide: ${themeName}, utilisation du thème par défaut`);
+            themeName = 'default-blue';
+        }
+        
+        // Enlever toutes les classes de thème d'accent existantes
+        validThemes.forEach(theme => {
+            document.body.classList.remove(`theme-${theme}`);
+        });
+        
+        // Si le thème n'est pas le défaut, ajouter la classe correspondante
+        if (themeName !== 'default-blue') {
+            document.body.classList.add(`theme-${themeName}`);
+        }
+        
+        // Mettre à jour l'état actif des boutons de sélection de couleur
+        const colorButtons = document.querySelectorAll('.color-option');
+        colorButtons.forEach(button => {
+            if (button.getAttribute('data-theme') === themeName) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+        
+        // Mettre à jour le thème dans les paramètres du jeu
+        if (game && game.settings) {
+            game.settings.accentColorTheme = themeName;
+            
+            // Sauvegarder les paramètres si c'est un changement manuel (pas au chargement)
+            if (game.hasSaveLoaded) {
+                saveGame();
+            }
+        }
+        
+        return true;
+    } catch (error) {
+        console.error("Erreur lors de l'application du thème d'accent:", error);
+        return false;
+    }
+}
+
+/**
+ * Initialise les boutons de sélection de thème d'accent
+ */
+function setupAccentColorPicker() {
+    try {
+        const colorButtons = document.querySelectorAll('.color-option');
+        
+        // Appliquer le thème actuel pour mettre en évidence le bouton correspondant
+        if (game && game.settings && game.settings.accentColorTheme) {
+            applyAccentColorTheme(game.settings.accentColorTheme);
+        }
+        
+        // Ajouter les écouteurs d'événements aux boutons
+        colorButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const selectedTheme = this.getAttribute('data-theme');
+                applyAccentColorTheme(selectedTheme);
+            });
+        });
+        
+        console.log('Sélecteur de couleurs initialisé');
+        return true;
+    } catch (error) {
+        console.error("Erreur lors de l'initialisation du sélecteur de couleurs:", error);
         return false;
     }
 }
@@ -3573,6 +3775,11 @@ function startNewGame() {
         console.log("Nouveau jeu initialisé avec état par défaut");
         console.log('État de game APRÈS getDefaultGameState dans startNewGame:', JSON.parse(JSON.stringify(game)));
         
+        // Appliquer le thème d'accent par défaut
+        if (game.settings && typeof game.settings.accentColorTheme === 'string') {
+            applyAccentColorTheme(game.settings.accentColorTheme);
+        }
+        
         // Vérifier que game est valide avant la sauvegarde
         if (typeof game === 'undefined' || game === null || typeof game.settings === 'undefined') { 
             console.error('ERREUR CRITIQUE: game ou game.settings undefined AVANT saveGame dans startNewGame!'); 
@@ -3687,6 +3894,9 @@ function proceedToGame() {
             // Continue malgré les erreurs d'interface
         }
         
+        // Initialiser le sélecteur de couleurs
+        setupAccentColorPicker();
+        
         // Démarrer la boucle de jeu (s'assurer qu'elle n'est pas déjà en cours)
         console.log("Démarrage de la boucle de jeu");
         if (!game.gameLoopId) {
@@ -3757,7 +3967,7 @@ function proceedToGame() {
  * Appelée au chargement de la page.
  */
 function init() {
-    console.log('Initialisation de Nano Bot Experience v11...');
+    console.log('Initialisation de Nano Bot Experience v12...');
     
     // Initialisation des éléments
     try {
