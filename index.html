@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Version 16.2 - Nouvel écran de chargement et robustesse accrue:
+Version 16.3 - Robustesse accrue face aux éléments DOM manquants et diagnostic CSP:
 - Création d'un écran d'accueil avec menu principal
 - Option pour continuer une partie avec info de dernière sauvegarde
 - Menu de paramètres complet pour audio et effets visuels
@@ -5412,10 +5412,12 @@ function init() {
         
         // Masquer l'écran de chargement initial dès que possible, après l'initialisation des éléments
         // pour que le menu puisse prendre le relais.
-        if (initialLoadingScreen) {
+        if (initialLoadingScreen && typeof initialLoadingScreen.classList !== 'undefined') {
             initialLoadingScreen.classList.add('hidden');
              // Pour le supprimer complètement après un court délai (optionnel)
-            setTimeout(() => { initialLoadingScreen.remove(); }, 1000);
+            setTimeout(() => { if(initialLoadingScreen && initialLoadingScreen.parentNode) initialLoadingScreen.remove(); }, 1000);
+        } else {
+            console.warn("Écran de chargement initial non trouvé ou invalide dans init().");
         }
 
         if (!window.menuInitialized) {
@@ -5447,7 +5449,7 @@ function init() {
     }
 }
 
-// Version améliorée de startGame
+// Version améliorée de startGame avec vérifications robustes
 function startGame(loadSave) {
     const initialLoadingScreen = document.getElementById('initial-loading-screen');
     const initialLoadingText = document.getElementById('initial-loading-text');
@@ -5455,30 +5457,32 @@ function startGame(loadSave) {
 
     try {
         if (!window.elements) {
-             console.error("Elements non initialisés avant startGame");
-             window.elements = initializeElements();
+             console.error("Elements non initialisés avant startGame. Tentative d'initialisation...");
+             window.elements = initializeElements(); // Tentative de récupération
         }
-        if (!elements.mainMenu || elements.mainMenu.dataset.missingElement || 
-            !elements.gameContainer || elements.gameContainer.dataset.missingElement) {
-            console.error("Éléments UI essentiels manquants pour startGame", elements);
-            throw new Error("Éléments UI essentiels manquants pour démarrer le jeu.");
+        // Vérifications critiques
+        if (!elements.mainMenu || elements.mainMenu.dataset.missingElement) {
+            throw new Error("Élément mainMenu manquant ou invalide.");
+        }
+        if (!elements.gameContainer || elements.gameContainer.dataset.missingElement) {
+            throw new Error("Élément gameContainer manquant ou invalide.");
         }
 
         // Afficher l'écran de chargement simplifié
-        if (initialLoadingScreen) {
+        if (initialLoadingScreen && typeof initialLoadingScreen.classList !== 'undefined') {
             if(initialLoadingText) initialLoadingText.textContent = "Démarrage du jeu...";
             if(initialLoadingError) initialLoadingError.style.display = 'none';
             initialLoadingScreen.classList.remove('hidden');
         } else {
-            // Fallback si l'écran de chargement simplifié n'existe pas (ne devrait pas arriver)
-            document.body.insertAdjacentHTML('afterbegin', '<div id="fallback-loading" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:4000; display:flex; align-items:center; justify-content:center; color:white;">Chargement...</div>');
+            console.warn("Écran de chargement initial non trouvé ou invalide dans startGame(). Un fallback sera utilisé.");
+            if(!document.getElementById('fallback-loading')) { // Éviter les duplications de fallback
+                document.body.insertAdjacentHTML('afterbegin', '<div id="fallback-loading" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:4000; display:flex; align-items:center; justify-content:center; color:white;">Chargement...</div>');
+            }
         }
         elements.mainMenu.classList.add('hidden');
 
         setTimeout(() => {
             try {
-                // La fonction init() appelée par DOMContentLoaded a déjà fait le gros du travail.
-                // Ici, on se concentre sur le chargement de l'état du jeu.
                 let gameInitialized = false;
                 if (loadSave) {
                     gameInitialized = loadGame(); 
@@ -5497,49 +5501,47 @@ function startGame(loadSave) {
                 elements.gameContainer.style.display = 'block';
                 
                 // Masquer l'écran de chargement
-                if (initialLoadingScreen) {
+                if (initialLoadingScreen && typeof initialLoadingScreen.classList !== 'undefined') {
                     initialLoadingScreen.classList.add('hidden');
-                    setTimeout(() => { initialLoadingScreen.remove(); }, 1000);
+                    setTimeout(() => { if(initialLoadingScreen && initialLoadingScreen.parentNode) initialLoadingScreen.remove(); }, 1000);
                 }
                 const fallbackLoading = document.getElementById('fallback-loading');
                 if(fallbackLoading) fallbackLoading.remove();
 
                 startGameLoop();
                 
-                // S'assurer que l'audio est correctement initialisé pour le contexte du jeu
                 if (typeof initializeAudioSystem === 'function' && game.settings.audio.enabled) {
-                    // Peut-être s'assurer que la musique joue si elle était en pause
-                    if(elements.backgroundMusic && elements.backgroundMusic.paused) {
+                    if(elements.backgroundMusic && !elements.backgroundMusic.dataset.missingElement && elements.backgroundMusic.paused) {
                         startBackgroundMusic(); 
                     }
-                    if(game.settings.audio.visualizer) initAudioVisualizer();
+                    if(game.settings.audio.visualizer && elements.audioVisualizer && !elements.audioVisualizer.dataset.missingElement) initAudioVisualizer();
                 }
 
             } catch (innerError) {
                 console.error("Erreur interne lors du démarrage du jeu:", innerError);
-                if(initialLoadingError) {
+                if(initialLoadingError && initialLoadingScreen && typeof initialLoadingScreen.classList !== 'undefined') {
                     initialLoadingError.textContent = `Erreur au démarrage: ${innerError.message}`;
                     initialLoadingError.style.display = 'block';
-                    if(initialLoadingScreen) initialLoadingScreen.classList.remove('hidden');
+                    initialLoadingScreen.classList.remove('hidden');
                 } else {
                     alert(`Une erreur est survenue lors du lancement du jeu: ${innerError.message}. Veuillez essayer de recharger.`);
                 }
-                elements.mainMenu.classList.remove('hidden');
-                elements.gameContainer.style.display = 'none';
+                if (elements.mainMenu && typeof elements.mainMenu.classList !== 'undefined') elements.mainMenu.classList.remove('hidden');
+                if (elements.gameContainer && typeof elements.gameContainer.style !== 'undefined') elements.gameContainer.style.display = 'none';
             }
-        }, 200); // Délai réduit pour le chargement
+        }, 200);
     } catch (error) {
         console.error("Erreur en préparation du démarrage du jeu:", error);
-         if(initialLoadingError) {
+         if(initialLoadingError && initialLoadingScreen && typeof initialLoadingScreen.classList !== 'undefined') {
             initialLoadingError.textContent = `Erreur de préparation: ${error.message}`;
             initialLoadingError.style.display = 'block';
-            if(initialLoadingScreen) initialLoadingScreen.classList.remove('hidden');
+            initialLoadingScreen.classList.remove('hidden');
         } else {
             alert(`Erreur de préparation: ${error.message}.`);
         }
         try {
-            if(elements.mainMenu) elements.mainMenu.classList.remove('hidden');
-        } catch(e){}
+            if(elements.mainMenu && typeof elements.mainMenu.classList !== 'undefined') elements.mainMenu.classList.remove('hidden');
+        } catch(e){ console.error("Impossible de restaurer le menu principal après erreur startGame", e); }
     }
 }
 
