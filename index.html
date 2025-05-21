@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <!--
-    Nanobot Experience V18 - Version améliorée avec PixiJS
+    Nanobot Experience V20 - Interface Évolutive
+    Date: 22 mai 2025
+    
+    Cette version propose une interface qui évolue avec votre progression:
+    - Déverrouillage progressif des fonctionnalités
+    - Correction de l'affichage des compteurs
+    - Interface simplifiée au démarrage
+    - Retour visuel amélioré
+    - Notifications de progression
+    Version améliorée avec PixiJS
     Date: 21 mai 2025
     
     Cette version utilise PixiJS pour améliorer les aspects visuels du jeu:
@@ -15,7 +24,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nanobot Experience V18 - PixiJS Edition</title>
+    <title>Nanobot Experience V20 - Interface Évolutive</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.2.4/dist/pixi.min.js"></script>
     <style>
@@ -417,7 +426,333 @@
         .highlight {
             animation: highlight 1s ease-out;
         }
-    </style>
+    /* Styles pour l'interface évolutive - Nanobot Experience V20 */
+
+/* Conteneur principal du jeu */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 15px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* En-tête avec les compteurs principaux */
+.resources-header {
+    display: flex;
+    justify-content: space-between;
+    background-color: rgba(15, 25, 40, 0.8);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+    margin-bottom: 10px;
+}
+
+.resource-counter {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: rgba(10, 20, 30, 0.7);
+    margin: 0 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.resource-counter::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+}
+
+.resource-counter h3 {
+    color: var(--primary-color);
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.resource-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-bright);
+    margin-bottom: 5px;
+}
+
+.resource-rate {
+    font-size: 14px;
+    color: var(--accent-color);
+    opacity: 0.9;
+}
+
+/* Sections de jeu évolutives */
+.game-section {
+    background-color: rgba(15, 25, 40, 0.8);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.game-section h3 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 1px solid rgba(0, 210, 255, 0.3);
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.game-section h3 i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+/* État verrouillé/déverrouillé */
+.game-section.locked {
+    display: none;
+}
+
+.game-section.new-unlock {
+    position: relative;
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+/* Producteurs */
+.producers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.producer-card {
+    background-color: rgba(10, 20, 30, 0.7);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 0 8px rgba(0, 210, 255, 0.15);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.producer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 210, 255, 0.25);
+}
+
+.producer-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    opacity: 0.7;
+}
+
+.producer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.producer-name {
+    font-weight: 500;
+    color: var(--text-bright);
+    font-size: 16px;
+}
+
+.producer-count {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.producer-info {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 10px;
+}
+
+.producer-production {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+.producer-buy {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.producer-cost {
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.buy-button {
+    background: linear-gradient(135deg, #0277bd, #00c9ff);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.buy-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+}
+
+.buy-button:active {
+    transform: translateY(0);
+}
+
+.buy-button:disabled {
+    background: #345;
+    color: #789;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.buy-button i {
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+/* Améliorations */
+.upgrades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.upgrade-card {
+    background-color: rgba(15, 25, 40, 0.8);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 0 8px rgba(100, 255, 218, 0.15);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.upgrade-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(100, 255, 218, 0.25);
+}
+
+.upgrade-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+    opacity: 0.7;
+}
+
+.upgrade-name {
+    font-weight: 500;
+    color: var(--accent-color);
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.upgrade-description {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 10px;
+    min-height: 40px;
+}
+
+.upgrade-buy {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.upgrade-cost {
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+/* Système de notifications */
+#notifications-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.notification {
+    background-color: rgba(15, 25, 40, 0.9);
+    border-left: 4px solid var(--accent-color);
+    border-radius: 5px;
+    padding: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    pointer-events: auto;
+}
+
+.notification-icon {
+    background-color: rgba(100, 255, 218, 0.2);
+    color: var(--accent-color);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+}
+
+.notification-content {
+    color: var(--text-light);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Adaptations responsive */
+@media (max-width: 768px) {
+    .resources-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .resource-counter {
+        margin: 0;
+    }
+    
+    .producers-grid, .upgrades-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>
 </head>
 <body>
     <div id="pixiCanvas"></div>
@@ -1248,5 +1583,271 @@
         // Démarrer le jeu dès que le DOM est chargé
         document.addEventListener('DOMContentLoaded', initGame);
     </script>
+<script>
+// Début du script pour corriger les bugs et simplifier l'interface
+
+// 1. Correction de l'affichage des nanites par seconde
+function fixResourcesDisplay() {
+    // S'assurer que les compteurs par seconde sont visibles
+    const updateResourcesDisplay = () => {
+        // Mettre à jour l'affichage des nanites par seconde
+        if (game && game.nanites) {
+            document.getElementById('nanites-per-second').textContent = formatNumber(calculateNanitesPerSecond());
+        }
+        
+        // Mettre à jour l'affichage des producteurs
+        if (game && game.producers) {
+            game.producers.forEach(producer => {
+                const countElement = document.getElementById(`${producer.id}-count`);
+                if (countElement) {
+                    countElement.textContent = formatNumber(producer.count);
+                }
+                
+                const productionElement = document.getElementById(`${producer.id}-production`);
+                if (productionElement) {
+                    productionElement.textContent = formatNumber(producer.production);
+                }
+            });
+        }
+    };
+    
+    // Remplacer ou améliorer la fonction existante
+    window.updateResourcesDisplay = updateResourcesDisplay;
+    
+    // Assurer que la fonction est appelée régulièrement
+    setInterval(updateResourcesDisplay, 1000);
+}
+
+// 2. Implémentation de l'interface évolutive
+function implementProgressiveUI() {
+    // Définir les niveaux de progression
+    const progressionLevels = [
+        { nanites: 0, unlockedSections: ['basic-resources', 'basic-producers'] },
+        { nanites: 100, unlockedSections: ['basic-upgrades'] },
+        { nanites: 500, unlockedSections: ['advanced-producers'] },
+        { nanites: 2000, unlockedSections: ['advanced-upgrades'] },
+        { nanites: 10000, unlockedSections: ['special-features'] }
+    ];
+    
+    // Fonction pour vérifier et mettre à jour l'interface en fonction de la progression
+    const updateUIBasedOnProgress = () => {
+        if (!game || !game.nanites) return;
+        
+        const totalNanites = game.nanites.amount + (game.nanites.totalProduced || 0);
+        
+        // Trouver le niveau actuel
+        let currentLevel = 0;
+        for (let i = progressionLevels.length - 1; i >= 0; i--) {
+            if (totalNanites >= progressionLevels[i].nanites) {
+                currentLevel = i;
+                break;
+            }
+        }
+        
+        // Recueillir toutes les sections qui doivent être déverrouillées
+        const sectionsToUnlock = [];
+        for (let i = 0; i <= currentLevel; i++) {
+            sectionsToUnlock.push(...progressionLevels[i].unlockedSections);
+        }
+        
+        // Mettre à jour la visibilité des sections
+        document.querySelectorAll('.game-section').forEach(section => {
+            const sectionId = section.getAttribute('data-section');
+            if (sectionsToUnlock.includes(sectionId)) {
+                section.classList.remove('locked');
+                
+                // Animation de déverrouillage si c'est nouveau
+                if (section.classList.contains('new-unlock')) {
+                    section.classList.remove('new-unlock');
+                    
+                    // Effet de déverrouillage
+                    gsap.fromTo(section, 
+                        { scale: 0.8, opacity: 0, y: 20 },
+                        { scale: 1, opacity: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }
+                    );
+                    
+                    // Notification de déverrouillage
+                    showNotification(`Nouvelle section déverrouillée : ${section.querySelector('h3')?.textContent || 'Section'}`);
+                }
+            } else {
+                section.classList.add('locked');
+            }
+        });
+    };
+    
+    // Fonction pour afficher une notification
+    const showNotification = (message) => {
+        const notifContainer = document.getElementById('notifications-container');
+        if (!notifContainer) return;
+        
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.innerHTML = `
+            <div class="notification-icon"><i class="fas fa-unlock"></i></div>
+            <div class="notification-content">${message}</div>
+        `;
+        
+        notifContainer.appendChild(notification);
+        
+        // Animation d'entrée
+        gsap.fromTo(notification, 
+            { x: 100, opacity: 0 },
+            { x: 0, opacity: 1, duration: 0.5, ease: "power2.out" }
+        );
+        
+        // Disparition automatique
+        setTimeout(() => {
+            gsap.to(notification, {
+                x: 100, opacity: 0, duration: 0.5, ease: "power2.in",
+                onComplete: () => notification.remove()
+            });
+        }, 5000);
+    };
+    
+    // Vérifier régulièrement la progression
+    setInterval(updateUIBasedOnProgress, 2000);
+    
+    // Vérifier immédiatement au chargement
+    window.addEventListener('game-loaded', updateUIBasedOnProgress);
+}
+
+// 3. Optimisation de l'interface graphique
+function enhanceVisualFeedback() {
+    // Améliorer le retour visuel sur les clics et actions
+    const enhanceClickFeedback = () => {
+        // Améliorer le retour visuel pour le clic sur les ressources
+        const resourceButtons = document.querySelectorAll('.resource-button');
+        resourceButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                // Créer un effet de particule au point de clic
+                createClickParticles(e.clientX, e.clientY);
+                
+                // Animation de pulsation
+                gsap.fromTo(button, 
+                    { scale: 0.95 },
+                    { scale: 1, duration: 0.3, ease: "elastic.out(1.2, 0.4)" }
+                );
+            });
+        });
+    };
+    
+    // Fonction pour créer des particules au clic
+    const createClickParticles = (x, y) => {
+        if (!window.particleContainer) return;
+        
+        const numParticles = 8;
+        const particles = [];
+        
+        for (let i = 0; i < numParticles; i++) {
+            // Créer une particule avec PixiJS
+            const particle = new PIXI.Graphics();
+            particle.beginFill(Math.random() > 0.5 ? 0x00d2ff : 0x64ffda);
+            particle.drawCircle(0, 0, 3 + Math.random() * 4);
+            particle.endFill();
+            particle.position.set(x, y);
+            particle.alpha = 0.7 + Math.random() * 0.3;
+            
+            // Ajouter au conteneur
+            window.particleContainer.addChild(particle);
+            particles.push(particle);
+            
+            // Animation avec GSAP
+            const angle = (i / numParticles) * Math.PI * 2;
+            const distance = 30 + Math.random() * 30;
+            
+            gsap.to(particle, {
+                pixi: { 
+                    x: x + Math.cos(angle) * distance,
+                    y: y + Math.sin(angle) * distance,
+                    alpha: 0,
+                    scale: 0.5 + Math.random() * 0.5
+                },
+                duration: 0.5 + Math.random() * 0.5,
+                ease: "power2.out",
+                onComplete: () => {
+                    window.particleContainer.removeChild(particle);
+                }
+            });
+        }
+    };
+    
+    // Initialiser une fois que PixiJS est prêt
+    window.addEventListener('pixi-ready', enhanceClickFeedback);
+}
+
+// 4. Corrections spécifiques à l'interface
+function applySpecificFixes() {
+    // Assurer que les compteurs de production sont correctement mis à jour
+    const fixProductionCounters = () => {
+        // Vérifier si la fonction gameLoop existe et la modifier
+        if (window.gameLoop) {
+            const originalGameLoop = window.gameLoop;
+            window.gameLoop = function() {
+                originalGameLoop();
+                
+                // Mise à jour des compteurs spécifiques
+                if (game && game.producers) {
+                    game.producers.forEach(producer => {
+                        // Mettre à jour le compteur
+                        const countElement = document.getElementById(`${producer.id}-count`);
+                        if (countElement) {
+                            countElement.textContent = formatNumber(producer.count);
+                        }
+                        
+                        // Mettre à jour la production
+                        const productionElement = document.getElementById(`${producer.id}-production`);
+                        if (productionElement) {
+                            const production = producer.count * producer.production;
+                            productionElement.textContent = formatNumber(production);
+                        }
+                    });
+                }
+                
+                // Mise à jour du compteur de nanites par seconde
+                const nanitesPerSecondElement = document.getElementById('nanites-per-second');
+                if (nanitesPerSecondElement && game && game.nanites) {
+                    const nanitesPerSecond = calculateNanitesPerSecond();
+                    nanitesPerSecondElement.textContent = formatNumber(nanitesPerSecond);
+                }
+            };
+        }
+    };
+    
+    // Calculer le nombre de nanites par seconde
+    window.calculateNanitesPerSecond = function() {
+        if (!game || !game.producers) return 0;
+        
+        let total = 0;
+        game.producers.forEach(producer => {
+            if (producer.id === 'producer1') { // Nano-Assembleurs
+                total += producer.count * producer.production;
+            }
+            // Ajouter d'autres producteurs si nécessaire
+        });
+        
+        // Appliquer les multiplicateurs
+        if (game.multipliers && game.multipliers.production) {
+            total *= game.multipliers.production;
+        }
+        
+        return total;
+    };
+    
+    // Exécuter les corrections
+    fixProductionCounters();
+}
+
+// Appliquer toutes les corrections au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Appliquer les corrections
+    fixResourcesDisplay();
+    implementProgressiveUI();
+    enhanceVisualFeedback();
+    applySpecificFixes();
+    
+    console.log('Corrections appliquées pour la version 20 !');
+});
+
+</script>
 </body>
 </html>
