@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Version 16.3 - Robustesse accrue face aux éléments DOM manquants et diagnostic CSP:
+Version 16.6 - Simplification radicale pour diagnostic CSP et chargement DOM:
 - Création d'un écran d'accueil avec menu principal
 - Option pour continuer une partie avec info de dernière sauvegarde
 - Menu de paramètres complet pour audio et effets visuels
@@ -1856,10 +1856,10 @@ input:checked + .toggle-slider:before {
     }
 }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> -->
 </head>
 <body>
-    <!-- Système audio -->
+    <!-- Système audio (temporairement commenté pour test CSP)
     <div id="audio-system">
         <audio id="background-music" loop preload="auto">
             <source src="https://assets.codepen.io/217233/synthtune.mp3" type="audio/mpeg">
@@ -1867,8 +1867,9 @@ input:checked + .toggle-slider:before {
             Votre navigateur ne supporte pas l'élément audio.
         </audio>
     </div>
+    -->
     
-    <!-- Visualiseur audio -->
+    <!-- Visualiseur audio (temporairement commenté pour test CSP)
     <div id="audio-visualizer" class="audio-visualizer">
         <div class="visualizer-bars">
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -1876,6 +1877,7 @@ input:checked + .toggle-slider:before {
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
     </div>
+    -->
 
     <!-- Écran de chargement simplifié -->
     <div id="initial-loading-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,20,30,0.98); z-index:3000; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; font-family: 'Orbitron', sans-serif;">
@@ -1940,6 +1942,7 @@ input:checked + .toggle-slider:before {
                     </div>
                 </div>
                 
+                <!-- Commenté pour résoudre les problèmes CSP
                 <div class="setting-item">
                     <div class="setting-label">
                         <i class="fas fa-volume-up"></i>
@@ -1950,6 +1953,7 @@ input:checked + .toggle-slider:before {
                         <div id="volume-value" class="volume-display">70%</div>
                     </div>
                 </div>
+                -->
                 
                 <div class="setting-item">
                     <div class="setting-label">
@@ -2453,12 +2457,14 @@ let game = {
         accentColorTheme: 'default-blue', // Thème de couleur d'accent
         particleEffects: true,            // Afficher les effets de particules
         showTutorial: true,               // Afficher le tutoriel
-        autoSave: true,                   // Sauvegarder automatiquement
+        autoSave: true                    // Sauvegarder automatiquement
+        /* Commenté pour résoudre les problèmes CSP
         audio: {
             enabled: true,                // Musique activée
             volume: 0.7,                  // Volume de la musique (0-1)
             visualizer: true              // Afficher le visualiseur audio
         }
+        */
     },
     
     // Système de succès
@@ -3830,33 +3836,7 @@ function updateAchievements() {
  * Affiche une notification discrète pour la sauvegarde automatique
  * @param {boolean} isAuto - Indique si la sauvegarde est automatique
  */
-function showSaveNotification(isAuto = false) {
-    // Supprime toute notification précédente
-    const existingNotification = document.querySelector('.autosave-notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-    
-    // Crée la notification
-    const notification = document.createElement('div');
-    notification.className = 'autosave-notification';
-    notification.textContent = isAuto ? '💾 Sauvegarde auto...' : '💾 Jeu sauvegardé!';
-    
-    document.body.appendChild(notification);
-    
-    // Animation d'entrée
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    // Suppression automatique
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            notification.remove();
-        }, 300);
-    }, 2000);
-}
+// Ancienne fonction showSaveNotification (ligne 3833) supprimée. La version corrigée (autour de la ligne 5346) est utilisée.
 
 /**
  * Sauvegarde l'état du jeu dans le localStorage
@@ -4749,10 +4729,15 @@ function initializeElements() {
             'mainMenu', 'settingsMenu', 'versionNotesMenu', 'loadingOverlay',
             'gameContainer', 'saveDetails', 'continueGame', 'newGame',
             'openSettings', 'showVersionNotes', 'settingsBack', 'versionNotesBack',
+            /* Commenté pour résoudre les problèmes CSP
             'musicToggle', 'volumeSlider', 'volumeValue', 'visualizerToggle',
+            */
             'darkThemeToggle', 'particlesToggle', 'notificationsToggle',
             'autosaveToggle', 'resetGameButton',
-            'backgroundMusic', 'audioVisualizer', 'saveNotification', // Ajout de saveNotification
+            /* Commenté pour résoudre les problèmes CSP
+            'backgroundMusic', 'audioVisualizer',
+            */
+            'saveNotification', 'menuParticles', // Ajout de menuParticles
             'achievementsContainer', 'achievementsBonus' // Ajout des éléments manquants de la v12
         ];
         
@@ -4832,9 +4817,11 @@ function initializeMenu() {
 
         attachMenuEventListeners();
 
+        /* Commenté pour résoudre les problèmes CSP
         if (typeof initializeAudioSystem === 'function') {
             initializeAudioSystem();
         }
+        */
 
         window.menuInitialized = true;
         console.log("Menu initialisé avec succès.");
@@ -4861,148 +4848,127 @@ function initializeMenu() {
 }
 
 // Mettre à jour le bouton continuer avec les infos de sauvegarde
+// Mettre à jour le bouton continuer avec les infos de sauvegarde
 function updateContinueButton() {
-    // Utiliser window.elements qui est initialisé par initializeElements()
+    if (!window.elements) {
+        console.warn("updateContinueButton appelée avant l'initialisation de window.elements.");
+        return;
+    }
     const continueGameBtn = window.elements.continueGame;
     const saveDetails = window.elements.saveDetails;
 
-    if (!continueGameBtn || continueGameBtn.dataset.missingElement || !saveDetails || saveDetails.dataset.missingElement) {
-        console.warn("Éléments pour le bouton 'Continuer' non trouvés.");
+    if (!continueGameBtn || continueGameBtn.dataset.missingElement === 'true') {
+        console.warn("Élément continue-game manquant ou substitut, impossible de mettre à jour.");
         return;
     }
-    
+    // Si saveDetails est manquant, on logue une erreur mais on continue pour gérer l'état du bouton
+    if (!saveDetails || saveDetails.dataset.missingElement === 'true') {
+        console.error("Élément save-details manquant ou substitut. Les détails de sauvegarde ne seront pas affichés.");
+    }
+
     try {
-        // Vérifier s'il existe une sauvegarde
         const saveData = localStorage.getItem('nanoBotExperienceSave');
-        
         if (saveData) {
-            hasSaveData = true;
+            window.hasSaveData = true;
             continueGameBtn.classList.remove('disabled');
-            
-            // Extraire les informations de sauvegarde
-            try {
-                const savedGame = JSON.parse(saveData);
-                
-                if (savedGame) {
-                    // Formatage date/heure
-                    const saveDate = new Date(savedGame.lastSave);
-                    const formattedDate = saveDate.toLocaleDateString();
-                    const formattedTime = saveDate.toLocaleTimeString();
-                    
-                    // Construire le texte d'info
-                    lastSaveInfo = `Dernière sauvegarde: ${formattedDate} à ${formattedTime}`;
-                    
-                    // Ajouter des infos de progression
-                    const nanobotsFormatted = formatNumber(savedGame.nanobots);
-                    lastSaveInfo += `<br>${nanobotsFormatted} nanobots`;
-                    
-                    if (savedGame.expansion && savedGame.expansion.currentLevel !== undefined) {
-                        const levelName = savedGame.expansion.levelNames?.[savedGame.expansion.currentLevel] || `Niveau ${savedGame.expansion.currentLevel}`;
-                        lastSaveInfo += `<br>Zone: ${levelName}`;
+            if (saveDetails && saveDetails.dataset.missingElement !== 'true') { // Vérifier à nouveau avant d'utiliser
+                try {
+                    const savedGame = JSON.parse(saveData);
+                    if (savedGame && savedGame.lastSave) {
+                        const saveDate = new Date(savedGame.lastSave);
+                        const formattedDate = saveDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                        const formattedTime = saveDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                        let infoText = `Dernière sauvegarde: ${formattedDate} à ${formattedTime}`;
+                        if (savedGame.nanobots !== undefined) {
+                            infoText += `<br>${formatNumber(savedGame.nanobots)} nanobots`;
+                        }
+                        if (savedGame.expansion && savedGame.expansion.levelNames && savedGame.expansion.currentLevel !== undefined) {
+                            const levelName = savedGame.expansion.levelNames[savedGame.expansion.currentLevel] || `Niveau ${savedGame.expansion.currentLevel}`;
+                            infoText += `<br>Zone: ${levelName}`;
+                        }
+                        saveDetails.innerHTML = infoText;
+                    } else {
+                        saveDetails.textContent = "Sauvegarde disponible (détails indisponibles)";
                     }
-                    
-                    saveDetails.innerHTML = lastSaveInfo;
+                } catch (parseError) {
+                    console.error("Erreur lors de l'analyse des données de sauvegarde pour affichage:", parseError);
+                    saveDetails.textContent = "Sauvegarde corrompue";
+                    continueGameBtn.classList.add('disabled'); 
+                    window.hasSaveData = false;
                 }
-            } catch (parseError) {
-                console.error("Erreur lors de l'analyse des données de sauvegarde:", parseError);
-                saveDetails.textContent = "Sauvegarde disponible";
             }
         } else {
-            hasSaveData = false;
+            window.hasSaveData = false;
             continueGameBtn.classList.add('disabled');
-            saveDetails.textContent = "Aucune sauvegarde trouvée";
+            if (saveDetails && saveDetails.dataset.missingElement !== 'true') {
+                saveDetails.textContent = "Aucune sauvegarde trouvée";
+            }
         }
     } catch (error) {
         console.error("Erreur lors de la mise à jour du bouton continuer:", error);
+        if (saveDetails && saveDetails.dataset.missingElement !== 'true') {
+            saveDetails.textContent = "Erreur de chargement sauvegarde";
+        }
+        continueGameBtn.classList.add('disabled');
+        window.hasSaveData = false;
     }
 }
 
 // Créer des particules pour le menu
+// Créer des particules pour le menu
 function createMenuParticles() {
-    const menuParticles = document.getElementById('menu-particles');
+    // S'assurer que window.elements et window.elements.menuParticles sont accessibles
+    if (!window.elements || !window.elements.menuParticles) {
+        console.warn("Tentative de création de particules avant que window.elements.menuParticles ne soit défini.");
+        return;
+    }
+
+    const menuParticlesContainer = window.elements.menuParticles;
     
-    if (!menuParticles) return;
+    // Vérification robuste si l'élément existe et n'est pas un substitut
+    if (menuParticlesContainer.dataset.missingElement === 'true') { 
+        console.warn("L'élément conteneur menu-particles est un substitut (original manquant). Aucune particule ne sera créée.");
+        return; 
+    }
+    if (!menuParticlesContainer.appendChild) { // Vérification supplémentaire si c'est un élément valide
+        console.error("L'élément menu-particles n'est pas un nœud DOM valide pour appendChild.");
+        return;
+    }
     
     try {
-
-// Fonction pour attacher les écouteurs d'événements au menu
-function attachMenuEventListeners() {
-    try {
-        const el = window.elements; // Raccourci pour plus de lisibilité
-
-        // Vérifier que les éléments clés existent
-        if (!el.continueGame || !el.newGame || !el.openSettings || !el.showVersionNotes) {
-            console.warn("Certains boutons du menu principal sont manquants, les écouteurs ne seront pas tous attachés.");
+        menuParticlesContainer.innerHTML = ''; // Vider les particules existantes
+        
+        const particleCount = Math.min(window.innerWidth / 18, 60); // Un peu moins de particules
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            const left = Math.random() * 100;
+            const size = Math.random() * 1.5 + 0.5; // Plus petites particules
+            const duration = Math.random() * 12 + 8; // Durée entre 8 et 20 secondes
+            const delay = Math.random() * duration; 
+            
+            particle.style.left = `${left}%`;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.opacity = Math.random() * 0.25 + 0.05; // Encore plus subtil
+            particle.style.animation = `float ${duration}s ${delay}s infinite linear`;
+            
+            let primaryColor = '#00A9FF'; 
+            try {
+                const cs = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                if (cs) primaryColor = cs;
+            } catch(e) {
+                // console.warn("Impossible de récupérer --primary-color pour les particules, utilisation du fallback.")
+            }
+            particle.style.backgroundColor = primaryColor; // Utiliser backgroundColor au lieu de boxShadow pour des particules simples
+            // particle.style.boxShadow = `0 0 ${Math.random() * 4 + 2}px ${primaryColor}`;
+            
+            menuParticlesContainer.appendChild(particle);
         }
-
-        if (el.continueGame && !el.continueGame.dataset.missingElement) {
-            el.continueGame.addEventListener('click', () => {
-                if (window.hasSaveData) startGame(true);
-            });
-        }
-        if (el.newGame && !el.newGame.dataset.missingElement) {
-            el.newGame.addEventListener('click', confirmNewGame);
-        }
-        if (el.openSettings && !el.openSettings.dataset.missingElement && el.settingsMenu && !el.settingsMenu.dataset.missingElement) {
-            el.openSettings.addEventListener('click', () => {
-                el.mainMenu.classList.add('hidden');
-                el.settingsMenu.classList.remove('hidden');
-                if (typeof loadSettings === 'function') loadSettings();
-            });
-        }
-        if (el.showVersionNotes && !el.showVersionNotes.dataset.missingElement && el.versionNotesMenu && !el.versionNotesMenu.dataset.missingElement) {
-            el.showVersionNotes.addEventListener('click', () => {
-                el.mainMenu.classList.add('hidden');
-                el.versionNotesMenu.classList.remove('hidden');
-            });
-        }
-        if (el.settingsBack && !el.settingsBack.dataset.missingElement) {
-            el.settingsBack.addEventListener('click', () => {
-                el.settingsMenu.classList.add('hidden');
-                el.mainMenu.classList.remove('hidden');
-            });
-        }
-        if (el.versionNotesBack && !el.versionNotesBack.dataset.missingElement) {
-            el.versionNotesBack.addEventListener('click', () => {
-                el.versionNotesMenu.classList.add('hidden');
-                el.mainMenu.classList.remove('hidden');
-            });
-        }
-        if (el.musicToggle && !el.musicToggle.dataset.missingElement && typeof toggleBackgroundMusic === 'function') {
-            el.musicToggle.addEventListener('change', () => toggleBackgroundMusic(el.musicToggle.checked));
-        }
-        if (el.volumeSlider && !el.volumeSlider.dataset.missingElement && typeof setMusicVolume === 'function') {
-            el.volumeSlider.addEventListener('input', () => {
-                const volume = el.volumeSlider.value / 100;
-                if (el.volumeValue && !el.volumeValue.dataset.missingElement) {
-                    el.volumeValue.textContent = el.volumeSlider.value + '%';
-                }
-                setMusicVolume(volume);
-            });
-        }
-        if (el.visualizerToggle && !el.visualizerToggle.dataset.missingElement && typeof toggleAudioVisualizer === 'function') {
-            el.visualizerToggle.addEventListener('change', () => toggleAudioVisualizer(el.visualizerToggle.checked));
-        }
-        if (el.darkThemeToggle && !el.darkThemeToggle.dataset.missingElement && typeof applyTheme === 'function') {
-            el.darkThemeToggle.addEventListener('change', () => applyTheme(el.darkThemeToggle.checked ? 'dark' : 'light'));
-        }
-        if (el.particlesToggle && !el.particlesToggle.dataset.missingElement && typeof toggleParticles === 'function') {
-            el.particlesToggle.addEventListener('change', () => toggleParticles(el.particlesToggle.checked));
-        }
-        if (el.notificationsToggle && !el.notificationsToggle.dataset.missingElement) {
-            el.notificationsToggle.addEventListener('change', () => {
-                if (window.game && window.game.settings) window.game.settings.showAutoSaveNotification = el.notificationsToggle.checked;
-            });
-        }
-        if (el.autosaveToggle && !el.autosaveToggle.dataset.missingElement && typeof toggleAutoSave === 'function') {
-            el.autosaveToggle.addEventListener('change', () => toggleAutoSave(el.autosaveToggle.checked));
-        }
-        if (el.resetGameButton && !el.resetGameButton.dataset.missingElement) {
-            el.resetGameButton.addEventListener('click', confirmResetGame);
-        }
-
     } catch (error) {
-        console.error("Erreur critique lors de l'attachement des écouteurs d'événements du menu:", error);
+        console.error("Erreur lors de la création des particules du menu:", error);
     }
 }
 
@@ -5045,6 +5011,7 @@ function loadSettings() {
         if (typeof window.game.settings === 'undefined') {
             window.game.settings = JSON.parse(JSON.stringify(getDefaultGameState().settings));
         }
+        /* Commenté pour résoudre les problèmes CSP
         // S'assurer que game.settings.audio existe
         if (typeof window.game.settings.audio === 'undefined') {
             window.game.settings.audio = JSON.parse(JSON.stringify(getDefaultGameState().settings.audio));
@@ -5063,6 +5030,7 @@ function loadSettings() {
         if (el.visualizerToggle && !el.visualizerToggle.dataset.missingElement) {
             el.visualizerToggle.checked = game.settings.audio.visualizer;
         }
+        */
         if (el.darkThemeToggle && !el.darkThemeToggle.dataset.missingElement) {
             el.darkThemeToggle.checked = game.settings.theme === 'dark';
         }
@@ -5139,6 +5107,7 @@ function toggleAutoSave(enabled) {
     }
 }
 
+/* Commenté pour résoudre les problèmes CSP
 // Initialiser le système audio
 function initializeAudioSystem() {
     try {
@@ -5171,7 +5140,9 @@ function initializeAudioSystem() {
         console.error("Erreur lors de l'initialisation du système audio:", error);
     }
 }
+*/
 
+/* Commenté pour résoudre les problèmes CSP
 // Activer/désactiver la musique de fond
 function toggleBackgroundMusic(enabled) {
     try {
@@ -5194,7 +5165,9 @@ function toggleBackgroundMusic(enabled) {
         console.error("Erreur lors du changement de la musique:", error);
     }
 }
+*/
 
+/* Commenté pour résoudre les problèmes CSP
 // Régler le volume de la musique
 function setMusicVolume(volume) {
     try {
@@ -5213,7 +5186,9 @@ function setMusicVolume(volume) {
         console.error("Erreur lors du changement de volume:", error);
     }
 }
+*/
 
+/* Commenté pour résoudre les problèmes CSP
 // Activer/désactiver le visualiseur audio
 function toggleAudioVisualizer(enabled) {
     try {
@@ -5240,8 +5215,10 @@ function toggleAudioVisualizer(enabled) {
         console.error("Erreur lors du changement du visualiseur:", error);
     }
 }
+*/
 
 // Initialisation du visualiseur audio
+/* Commenté pour résoudre les problèmes CSP
 function initAudioVisualizer() {
     try {
         const bgMusic = document.getElementById('background-music');
@@ -5303,6 +5280,7 @@ function initAudioVisualizer() {
         console.error("Erreur lors de l'initialisation du visualiseur audio:", error);
     }
 }
+*/
 
 // Démarrer le jeu
 function startGame(loadSave) {
@@ -5365,23 +5343,29 @@ function confirmResetGame() {
 
 // Fonction pour afficher une notification de sauvegarde
 function showSaveNotification(isAuto = false) {
+    if (!window.elements) {
+        console.warn("showSaveNotification appelée avant l'initialisation de window.elements.");
+        return;
+    }
+    const notification = window.elements.saveNotification;
+
+    if (!notification || notification.dataset.missingElement === 'true') {
+        console.warn("Élément save-notification manquant ou substitut. Notification non affichée.");
+        // Afficher une alerte simple en fallback si les notifications ne fonctionnent pas
+        // alert(isAuto ? 'Sauvegarde automatique effectuée' : 'Partie sauvegardée');
+        return;
+    }
+
     try {
-        const notification = document.getElementById('save-notification');
-        
-        if (!notification) return;
-        
-        // Définir le texte de la notification
         notification.innerHTML = `<i class="fas fa-save"></i> ${isAuto ? 'Sauvegarde automatique' : 'Partie sauvegardée'}`;
-        
-        // Afficher la notification
         notification.classList.add('show');
-        
-        // Masquer après 2 secondes
         setTimeout(() => {
-            notification.classList.remove('show');
-        }, 2000);
+            if (notification && typeof notification.classList !== 'undefined') { // Vérifier à nouveau avant de masquer
+                notification.classList.remove('show');
+            }
+        }, 2500); // Augmenté légèrement le délai
     } catch (error) {
-        console.error("Erreur lors de l'affichage de la notification:", error);
+        console.error("Erreur lors de l'affichage de la notification de sauvegarde:", error);
     }
 }
 
@@ -5510,12 +5494,14 @@ function startGame(loadSave) {
 
                 startGameLoop();
                 
+                /* Commenté pour résoudre les problèmes CSP
                 if (typeof initializeAudioSystem === 'function' && game.settings.audio.enabled) {
                     if(elements.backgroundMusic && !elements.backgroundMusic.dataset.missingElement && elements.backgroundMusic.paused) {
                         startBackgroundMusic(); 
                     }
                     if(game.settings.audio.visualizer && elements.audioVisualizer && !elements.audioVisualizer.dataset.missingElement) initAudioVisualizer();
                 }
+                */
 
             } catch (innerError) {
                 console.error("Erreur interne lors du démarrage du jeu:", innerError);
