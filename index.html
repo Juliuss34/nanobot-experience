@@ -1,1853 +1,301 @@
 <!DOCTYPE html>
-<!--
-    Nanobot Experience V20 - Interface Évolutive
-    Date: 22 mai 2025
-    
-    Cette version propose une interface qui évolue avec votre progression:
-    - Déverrouillage progressif des fonctionnalités
-    - Correction de l'affichage des compteurs
-    - Interface simplifiée au démarrage
-    - Retour visuel amélioré
-    - Notifications de progression
-    Version améliorée avec PixiJS
-    Date: 21 mai 2025
-    
-    Cette version utilise PixiJS pour améliorer les aspects visuels du jeu:
-    - Système de particules avancé avec PixiJS
-    - Effets visuels améliorés pour les ressources et achats
-    - Animations fluides et transitions élégantes
-    - Structure HTML/CSS conservée pour l'interface utilisateur
-    - Logique de jeu optimisée
--->
-
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nanobot Experience V20 - Interface Évolutive</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.2.4/dist/pixi.min.js"></script>
+    <title>Nanobot Experience Simplifiée</title>
     <style>
-        :root {
-            --bg-color: #0a0a14;
-            --text-color: #e0e0e0;
-            --accent-color: #00aaff;
-            --secondary-color: #0088cc;
-            --panel-bg: rgba(20, 30, 40, 0.85);
-            --button-bg: rgba(0, 120, 215, 0.7);
-            --button-hover: rgba(0, 140, 255, 0.9);
-            --resource-nanites: #64ffda;
-            --resource-energy: #ffeb3b;
-            --resource-matter: #ff7043;
-            --z-index-game: 10;
-            --z-index-canvas: 5;
-            --z-index-popup: 100;
-        }
-
-        /* Reset de base */
-        * {
+        /* Styles de base */
+        body {
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0a0d14;
+            color: #e0e0e0;
         }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
         }
-
-        #pixiCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: var(--z-index-canvas);
-            pointer-events: none;
+        
+        h1 {
+            color: #00d2ff;
+            text-align: center;
         }
-
-        .game-container {
-            position: relative;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        
+        /* Menu */
+        .menu {
+            background-color: rgba(15, 25, 40, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .menu-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .menu-buttons {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            z-index: var(--z-index-game);
+            gap: 10px;
         }
-
-        /* Interface principale */
-        .main-interface {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 1rem;
-            gap: 1rem;
-            overflow: auto;
-            backdrop-filter: blur(3px);
-        }
-
-        /* Barre supérieure */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--panel-bg);
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-        }
-
-        .game-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent-color);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .game-title i {
-            font-size: 1.2rem;
-        }
-
-        /* Conteneur des ressources */
-        .resources-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .resource-panel {
-            flex: 1;
-            min-width: 200px;
-            background-color: var(--panel-bg);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .resource-panel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .resource-panel::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(to right, transparent, var(--accent-color), transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .resource-panel:hover::before {
-            opacity: 1;
-        }
-
-        .resource-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-            color: var(--accent-color);
-        }
-
-        .resource-value {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            transition: transform 0.2s ease;
-        }
-
-        .resource-rate {
-            font-size: 0.9rem;
-            color: #aaa;
-        }
-
-        /* Animation de mise à jour des valeurs */
-        .value-updated {
-            animation: pulse 0.5s ease;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
-        /* Styles des boutons */
-        .game-button {
-            background-color: var(--button-bg);
+        
+        .button {
+            background-color: #333;
             color: white;
-            border: none;
-            border-radius: 0.25rem;
-            padding: 0.5rem 1rem;
-            margin: 0.5rem 0;
+            border: 1px solid #00d2ff;
+            border-radius: 5px;
+            padding: 10px 15px;
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-            width: 100%;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1rem;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .game-button:hover {
-            background-color: var(--button-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .game-button:active {
-            transform: translateY(1px);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        }
-
-        .game-button::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 5px;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.7);
-            opacity: 0;
-            border-radius: 100%;
-            transform: scale(1, 1) translate(-50%);
-            transform-origin: 50% 50%;
-        }
-
-        .game-button:focus:not(:active)::after {
-            animation: ripple 1s ease-out;
-        }
-
-        @keyframes ripple {
-            0% {
-                transform: scale(0, 0);
-                opacity: 0.5;
-            }
-            100% {
-                transform: scale(20, 20);
-                opacity: 0;
-            }
-        }
-
-        .button-cost {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-
-        /* Producteurs et améliorations */
-        .producers-container, .upgrades-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .section-title {
-            font-size: 1.2rem;
-            color: var(--accent-color);
-            margin-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .section-title i {
-            font-size: 1rem;
-        }
-
-        /* Feedback visuel */
-        .resource-feedback {
-            position: absolute;
-            color: var(--accent-color);
-            font-weight: bold;
-            pointer-events: none;
-            animation: float-up 1s ease-out forwards;
-            text-shadow: 0 0 5px var(--bg-color);
-            z-index: 1000;
-        }
-
-        @keyframes float-up {
-            0% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
-
-        /* Footer */
-        .footer {
-            background-color: var(--panel-bg);
-            padding: 0.5rem;
             text-align: center;
-            font-size: 0.8rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s;
         }
-
-        .footer a {
-            color: var(--accent-color);
-            text-decoration: none;
+        
+        .button:hover {
+            background-color: #444;
+            border-color: #64ffda;
         }
-
-        /* Stats */
-        .stats-panel {
-            background-color: var(--panel-bg);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-top: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        
+        /* Jeu */
+        .game {
+            display: none;
+            background-color: rgba(15, 25, 40, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
         }
-
-        .stats-row {
+        
+        .resource {
             display: flex;
             justify-content: space-between;
-            margin: 0.25rem 0;
-        }
-
-        .stats-label {
-            color: #aaa;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 0.5rem;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 0.25rem;
-            margin-top: 0.25rem;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            border-radius: 0.25rem;
-            background: linear-gradient(to right, var(--secondary-color), var(--accent-color));
-            transition: width 0.3s ease;
-            position: relative;
+            margin-bottom: 10px;
         }
         
-        .progress-fill::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            background: linear-gradient(
-                45deg,
-                rgba(255, 255, 255, 0.2) 25%,
-                transparent 25%,
-                transparent 50%,
-                rgba(255, 255, 255, 0.2) 50%,
-                rgba(255, 255, 255, 0.2) 75%,
-                transparent 75%,
-                transparent
-            );
-            background-size: 20px 20px;
-            animation: progress-animation 1s linear infinite;
-        }
-
-        @keyframes progress-animation {
-            0% {
-                background-position: 0 0;
-            }
-            100% {
-                background-position: 20px 0;
-            }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
         }
         
-        /* Popup d'amélioration */
-        .upgrade-popup {
+        /* Notification */
+        .notification {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: var(--panel-bg);
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            z-index: var(--z-index-popup);
-            max-width: 400px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--accent-color);
+            bottom: 20px;
+            right: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
             display: none;
         }
-
-        .upgrade-popup h2 {
-            color: var(--accent-color);
-            margin-bottom: 1rem;
-        }
-
-        .upgrade-popup p {
-            margin-bottom: 1rem;
-        }
-
-        .upgrade-popup button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 0.25rem;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .upgrade-popup button:hover {
-            background-color: var(--secondary-color);
-        }
-        
-        /* Pour les animations d'achat */
-        @keyframes highlight {
-            0% { box-shadow: 0 0 0 rgba(0, 170, 255, 0); }
-            50% { box-shadow: 0 0 20px rgba(0, 170, 255, 0.7); }
-            100% { box-shadow: 0 0 0 rgba(0, 170, 255, 0); }
-        }
-
-        .highlight {
-            animation: highlight 1s ease-out;
-        }
-    /* Styles pour l'interface évolutive - Nanobot Experience V20 */
-
-/* Conteneur principal du jeu */
-.game-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 15px;
-    max-width: 1000px;
-    margin: 0 auto;
-}
-
-/* En-tête avec les compteurs principaux */
-.resources-header {
-    display: flex;
-    justify-content: space-between;
-    background-color: rgba(15, 25, 40, 0.8);
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
-    margin-bottom: 10px;
-}
-
-.resource-counter {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    border-radius: 8px;
-    background-color: rgba(10, 20, 30, 0.7);
-    margin: 0 5px;
-    position: relative;
-    overflow: hidden;
-}
-
-.resource-counter::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-}
-
-.resource-counter h3 {
-    color: var(--primary-color);
-    margin: 0 0 8px 0;
-    font-size: 18px;
-    font-weight: 500;
-}
-
-.resource-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--text-bright);
-    margin-bottom: 5px;
-}
-
-.resource-rate {
-    font-size: 14px;
-    color: var(--accent-color);
-    opacity: 0.9;
-}
-
-/* Sections de jeu évolutives */
-.game-section {
-    background-color: rgba(15, 25, 40, 0.8);
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
-    transition: all 0.3s ease;
-}
-
-.game-section h3 {
-    color: var(--primary-color);
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 18px;
-    border-bottom: 1px solid rgba(0, 210, 255, 0.3);
-    padding-bottom: 8px;
-    display: flex;
-    align-items: center;
-}
-
-.game-section h3 i {
-    margin-right: 8px;
-    font-size: 16px;
-}
-
-/* État verrouillé/déverrouillé */
-.game-section.locked {
-    display: none;
-}
-
-.game-section.new-unlock {
-    position: relative;
-    opacity: 0;
-    transform: scale(0.9);
-}
-
-/* Producteurs */
-.producers-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
-}
-
-.producer-card {
-    background-color: rgba(10, 20, 30, 0.7);
-    border-radius: 8px;
-    padding: 12px;
-    box-shadow: 0 0 8px rgba(0, 210, 255, 0.15);
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.producer-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 210, 255, 0.25);
-}
-
-.producer-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-    opacity: 0.7;
-}
-
-.producer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.producer-name {
-    font-weight: 500;
-    color: var(--text-bright);
-    font-size: 16px;
-}
-
-.producer-count {
-    font-weight: bold;
-    color: var(--accent-color);
-}
-
-.producer-info {
-    font-size: 14px;
-    color: var(--text-light);
-    margin-bottom: 10px;
-}
-
-.producer-production {
-    color: var(--accent-color);
-    font-weight: 500;
-}
-
-.producer-buy {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.producer-cost {
-    color: var(--text-light);
-    font-size: 14px;
-}
-
-.buy-button {
-    background: linear-gradient(135deg, #0277bd, #00c9ff);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.buy-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
-}
-
-.buy-button:active {
-    transform: translateY(0);
-}
-
-.buy-button:disabled {
-    background: #345;
-    color: #789;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.buy-button i {
-    margin-right: 5px;
-    font-size: 12px;
-}
-
-/* Améliorations */
-.upgrades-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.upgrade-card {
-    background-color: rgba(15, 25, 40, 0.8);
-    border-radius: 8px;
-    padding: 12px;
-    box-shadow: 0 0 8px rgba(100, 255, 218, 0.15);
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.upgrade-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(100, 255, 218, 0.25);
-}
-
-.upgrade-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
-    opacity: 0.7;
-}
-
-.upgrade-name {
-    font-weight: 500;
-    color: var(--accent-color);
-    font-size: 16px;
-    margin-bottom: 8px;
-}
-
-.upgrade-description {
-    font-size: 13px;
-    color: var(--text-light);
-    margin-bottom: 10px;
-    min-height: 40px;
-}
-
-.upgrade-buy {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.upgrade-cost {
-    color: var(--text-light);
-    font-size: 14px;
-}
-
-/* Système de notifications */
-#notifications-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 300px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    pointer-events: none;
-}
-
-.notification {
-    background-color: rgba(15, 25, 40, 0.9);
-    border-left: 4px solid var(--accent-color);
-    border-radius: 5px;
-    padding: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    pointer-events: auto;
-}
-
-.notification-icon {
-    background-color: rgba(100, 255, 218, 0.2);
-    color: var(--accent-color);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 12px;
-}
-
-.notification-content {
-    color: var(--text-light);
-    font-size: 14px;
-    line-height: 1.4;
-}
-
-/* Adaptations responsive */
-@media (max-width: 768px) {
-    .resources-header {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .resource-counter {
-        margin: 0;
-    }
-    
-    .producers-grid, .upgrades-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-</style>
+    </style>
 </head>
 <body>
-    <div id="pixiCanvas"></div>
-    
-    <div class="game-container">
-        <div class="top-bar">
-            <div class="game-title">
-                <i class="fas fa-microchip"></i> Nanobot Experience V18
+    <div class="container">
+        <h1>Nanobot Experience Simplifiée</h1>
+        
+        <!-- Menu -->
+        <div id="menu" class="menu">
+            <div class="menu-title">
+                <h2>Menu Principal</h2>
+                <p>Version simplifiée pour le test</p>
             </div>
-            <div id="total-nanobots">Nanobots: 0</div>
-        </div>
-
-        <div class="main-interface">
-            <div class="resources-container">
-                <div class="resource-panel" id="nanites-panel">
-                    <div class="resource-header">
-                        <div>Nanites</div>
-                        <i class="fas fa-robot" style="color: var(--resource-nanites)"></i>
-                    </div>
-                    <div class="resource-value" id="nanites-value">0</div>
-                    <div class="resource-rate" id="nanites-rate">0 par seconde</div>
-                    <button class="game-button" id="nanites-button" data-resource="nanites">
-                        <span>Générer des nanites</span>
-                        <span class="button-cost">Clic</span>
-                    </button>
-                </div>
-
-                <div class="resource-panel" id="energy-panel">
-                    <div class="resource-header">
-                        <div>Énergie</div>
-                        <i class="fas fa-bolt" style="color: var(--resource-energy)"></i>
-                    </div>
-                    <div class="resource-value" id="energy-value">0</div>
-                    <div class="resource-rate" id="energy-rate">0 par seconde</div>
-                    <button class="game-button" id="energy-button" data-resource="energy">
-                        <span>Générer de l'énergie</span>
-                        <span class="button-cost">Clic</span>
-                    </button>
-                </div>
-
-                <div class="resource-panel" id="matter-panel">
-                    <div class="resource-header">
-                        <div>Matière</div>
-                        <i class="fas fa-atom" style="color: var(--resource-matter)"></i>
-                    </div>
-                    <div class="resource-value" id="matter-value">0</div>
-                    <div class="resource-rate" id="matter-rate">0 par seconde</div>
-                    <button class="game-button" id="matter-button" data-resource="matter">
-                        <span>Générer de la matière</span>
-                        <span class="button-cost">Clic</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="section-title">
-                <i class="fas fa-industry"></i> Producteurs automatiques
-            </div>
-            <div class="producers-container" id="producers-container">
-                <!-- Les producteurs seront ajoutés ici par JavaScript -->
-            </div>
-
-            <div class="section-title">
-                <i class="fas fa-star"></i> Améliorations
-            </div>
-            <div class="upgrades-container" id="upgrades-container">
-                <!-- Les améliorations seront ajoutées ici par JavaScript -->
-            </div>
-
-            <div class="stats-panel">
-                <div class="section-title">
-                    <i class="fas fa-chart-line"></i> Statistiques
-                </div>
-                <div class="stats-row">
-                    <div class="stats-label">Temps de jeu:</div>
-                    <div id="play-time">00:00:00</div>
-                </div>
-                <div class="stats-row">
-                    <div class="stats-label">Clics totaux:</div>
-                    <div id="total-clicks">0</div>
-                </div>
-                <div class="stats-row">
-                    <div class="stats-label">Nanobots produits:</div>
-                    <div id="nanobots-produced">0</div>
-                </div>
-                <div class="stats-row">
-                    <div class="stats-label">Progression:</div>
-                    <div id="progress-percent">0%</div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-                </div>
+            <div class="menu-buttons">
+                <button id="btn-new-game" class="button">Nouvelle Partie</button>
+                <button id="btn-continue" class="button">Continuer</button>
+                <button id="btn-reset" class="button">Réinitialiser les données</button>
             </div>
         </div>
-
-        <div class="footer">
-            Nanobot Experience V18 - PixiJS Edition &copy; 2025
+        
+        <!-- Jeu -->
+        <div id="game" class="game">
+            <h2>Interface de Jeu</h2>
+            
+            <div class="resource">
+                <span>Nanobots:</span>
+                <span id="nanobots">0</span>
+            </div>
+            
+            <div class="resource">
+                <span>Production par seconde:</span>
+                <span id="per-second">0</span>
+            </div>
+            
+            <div class="controls">
+                <button id="btn-produce" class="button">Produire des nanobots</button>
+                <button id="btn-save" class="button">Sauvegarder</button>
+                <button id="btn-back" class="button">Retour au menu</button>
+            </div>
         </div>
+        
+        <!-- Notification -->
+        <div id="notification" class="notification"></div>
     </div>
     
-    <div class="upgrade-popup" id="upgrade-popup">
-        <h2 id="popup-title">Amélioration débloquée!</h2>
-        <p id="popup-description">Vous avez débloqué une nouvelle amélioration.</p>
-        <button id="popup-close">Continuer</button>
-    </div>
-
     <script>
-        // Initialisation de PixiJS
-        const app = new PIXI.Application({
-            width: window.innerWidth,
-            height: window.innerHeight,
-            backgroundColor: 0x0a0a14,
-            resolution: window.devicePixelRatio || 1,
-            antialias: true,
-            autoDensity: true,
-            transparent: true
-        });
-        document.getElementById('pixiCanvas').appendChild(app.view);
-        
-        // Redimensionner le canvas quand la fenêtre change de taille
-        window.addEventListener('resize', () => {
-            app.renderer.resize(window.innerWidth, window.innerHeight);
-        });
-        
-        // Containers pour différents types de particules
-        const particleContainer = new PIXI.Container();
-        const backgroundContainer = new PIXI.Container();
-        const foregroundContainer = new PIXI.Container();
-        
-        app.stage.addChild(backgroundContainer);
-        app.stage.addChild(particleContainer);
-        app.stage.addChild(foregroundContainer);
-        
-        // Couleurs des ressources pour les particules
-        const resourceColors = {
-            nanites: 0x64ffda,
-            energy: 0xffeb3b,
-            matter: 0xff7043
-        };
-        
-        // Particules d'arrière-plan
-        function createBackgroundParticles() {
-            for (let i = 0; i < 50; i++) {
-                const particle = new PIXI.Graphics();
-                const size = Math.random() * 3 + 1;
-                const alpha = Math.random() * 0.5 + 0.1;
-                
-                particle.beginFill(0xffffff, alpha);
-                particle.drawCircle(0, 0, size);
-                particle.endFill();
-                
-                particle.x = Math.random() * app.screen.width;
-                particle.y = Math.random() * app.screen.height;
-                
-                // Propriétés pour l'animation
-                particle.vx = (Math.random() - 0.5) * 0.2;
-                particle.vy = (Math.random() - 0.5) * 0.2;
-                
-                backgroundContainer.addChild(particle);
-            }
-            
-            // Animation des particules d'arrière-plan
-            app.ticker.add(() => {
-                for (let i = 0; i < backgroundContainer.children.length; i++) {
-                    const particle = backgroundContainer.children[i];
-                    
-                    particle.x += particle.vx;
-                    particle.y += particle.vy;
-                    
-                    // Rebond sur les bords
-                    if (particle.x < 0 || particle.x > app.screen.width) {
-                        particle.vx *= -1;
-                    }
-                    
-                    if (particle.y < 0 || particle.y > app.screen.height) {
-                        particle.vy *= -1;
-                    }
-                }
-            });
-        }
-        
-        // Système de particules pour les clics
-        function createClickParticles(x, y, resource) {
-            const color = resourceColors[resource] || 0x00aaff;
-            const particleCount = 15;
-            
-            for (let i = 0; i < particleCount; i++) {
-                const particle = new PIXI.Graphics();
-                const size = Math.random() * 5 + 2;
-                
-                particle.beginFill(color);
-                particle.drawCircle(0, 0, size);
-                particle.endFill();
-                
-                particle.x = x;
-                particle.y = y;
-                
-                // Propriétés pour l'animation
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 3 + 1;
-                particle.vx = Math.cos(angle) * speed;
-                particle.vy = Math.sin(angle) * speed;
-                particle.alpha = 1;
-                particle.life = 60; // Durée de vie en frames
-                
-                particleContainer.addChild(particle);
-            }
-        }
-        
-        // Animation des particules de clic
-        app.ticker.add(() => {
-            for (let i = particleContainer.children.length - 1; i >= 0; i--) {
-                const particle = particleContainer.children[i];
-                
-                particle.x += particle.vx;
-                particle.y += particle.vy;
-                particle.alpha -= 0.02;
-                particle.life--;
-                
-                // Supprimer les particules mortes
-                if (particle.life <= 0 || particle.alpha <= 0) {
-                    particleContainer.removeChild(particle);
-                }
-            }
-        });
-        
-        // Créer un effet visuel pour l'achat d'un producteur ou d'une amélioration
-        function createPurchaseEffect(x, y, color = 0x00aaff) {
-            // Créer un cercle qui s'étend
-            const circle = new PIXI.Graphics();
-            circle.lineStyle(2, color, 1);
-            circle.drawCircle(0, 0, 1);
-            circle.x = x;
-            circle.y = y;
-            
-            // Propriétés pour l'animation
-            circle.radius = 1;
-            circle.alpha = 1;
-            circle.life = 30; // Durée de vie en frames
-            
-            foregroundContainer.addChild(circle);
-            
-            // Animation unique pour ce cercle
-            function animateCircle() {
-                circle.clear();
-                circle.lineStyle(2, color, circle.alpha);
-                circle.drawCircle(0, 0, circle.radius);
-                
-                circle.radius += 3;
-                circle.alpha -= 0.03;
-                circle.life--;
-                
-                if (circle.life <= 0 || circle.alpha <= 0) {
-                    foregroundContainer.removeChild(circle);
-                    app.ticker.remove(animateCircle);
-                }
-            }
-            
-            app.ticker.add(animateCircle);
-        }
-        
-        // Fonctions factices pour assurer la compatibilité
-        function safeLocalStorage(action, key, value) {
-            try {
-                if (action === 'get') {
-                    return localStorage.getItem(key);
-                } else if (action === 'set') {
-                    localStorage.setItem(key, value);
-                    return true;
-                } else if (action === 'remove') {
-                    localStorage.removeItem(key);
-                    return true;
-                }
-            } catch (error) {
-                console.error("Erreur d'accès au stockage local:", error);
-                if (!window.backupStorage) {
-                    window.backupStorage = {};
-                }
-                
-                if (action === 'get') {
-                    return window.backupStorage[key] || null;
-                } else if (action === 'set') {
-                    window.backupStorage[key] = value;
-                    return true;
-                } else if (action === 'remove') {
-                    delete window.backupStorage[key];
-                    return true;
-                }
-            }
-            return null;
-        }
-
-        // Jeu principal
-        const game = {
-            resources: {
-                nanites: 0,
-                energy: 0,
-                matter: 0
-            },
-            producers: [
-                {
-                    id: 'nanite-producer',
-                    name: 'Nano-Assembleur',
-                    description: 'Assemble automatiquement des nanites',
-                    resource: 'nanites',
-                    baseProduction: 0.3, // Augmenté pour progression plus rapide
-                    baseCost: 15,
-                    costMultiplier: 1.12, // Réduit pour progression plus rapide
-                    count: 0,
-                    icon: 'fa-microchip'
-                },
-                {
-                    id: 'energy-producer',
-                    name: 'Micro-Réacteur',
-                    description: 'Génère automatiquement de l\'énergie',
-                    resource: 'energy',
-                    baseProduction: 0.3,
-                    baseCost: 25,
-                    costMultiplier: 1.12,
-                    count: 0,
-                    icon: 'fa-bolt'
-                },
-                {
-                    id: 'matter-producer',
-                    name: 'Convertisseur de Matière',
-                    description: 'Transforme l\'énergie en matière',
-                    resource: 'matter',
-                    baseProduction: 0.3,
-                    baseCost: 50,
-                    costMultiplier: 1.15,
-                    count: 0,
-                    icon: 'fa-atom'
-                }
-            ],
-            upgrades: [
-                {
-                    id: 'nanite-multiplier',
-                    name: 'Algorithmes Optimisés',
-                    description: 'Double la production de nanites',
-                    cost: 100,
-                    purchased: false,
-                    effect: function() {
-                        game.multipliers.nanites *= 2;
-                        showUpgradePopup('Algorithmes Optimisés', 'Votre production de nanites est doublée!');
-                        updateUI();
-                    },
-                    icon: 'fa-microchip'
-                },
-                {
-                    id: 'energy-multiplier',
-                    name: 'Capteurs Solaires Avancés',
-                    description: 'Double la production d\'énergie',
-                    cost: 150,
-                    purchased: false,
-                    effect: function() {
-                        game.multipliers.energy *= 2;
-                        showUpgradePopup('Capteurs Solaires Avancés', 'Votre production d\'énergie est doublée!');
-                        updateUI();
-                    },
-                    icon: 'fa-sun'
-                },
-                {
-                    id: 'matter-multiplier',
-                    name: 'Condensateur Quantique',
-                    description: 'Double la production de matière',
-                    cost: 200,
-                    purchased: false,
-                    effect: function() {
-                        game.multipliers.matter *= 2;
-                        showUpgradePopup('Condensateur Quantique', 'Votre production de matière est doublée!');
-                        updateUI();
-                    },
-                    icon: 'fa-cube'
-                },
-                {
-                    id: 'click-power',
-                    name: 'Amplificateur de Clics',
-                    description: 'Triple la puissance de vos clics',
-                    cost: 75,
-                    purchased: false,
-                    effect: function() {
-                        game.clickPower *= 3;
-                        showUpgradePopup('Amplificateur de Clics', 'La puissance de vos clics est triplée!');
-                        updateUI();
-                    },
-                    icon: 'fa-hand-pointer'
-                },
-                {
-                    id: 'auto-converter',
-                    name: 'Convertisseur Automatique',
-                    description: 'Convertit automatiquement les ressources en nanobots',
-                    cost: 500,
-                    purchased: false,
-                    effect: function() {
-                        game.autoConversion = true;
-                        showUpgradePopup('Convertisseur Automatique', 'Vos ressources sont maintenant automatiquement converties en nanobots!');
-                        updateUI();
-                    },
-                    icon: 'fa-sync'
-                }
-            ],
-            multipliers: {
-                nanites: 1,
-                energy: 1,
-                matter: 1
-            },
-            clickPower: 1,
+        // État du jeu
+        let game = {
             nanobots: 0,
-            autoConversion: false,
-            stats: {
-                startTime: Date.now(),
-                totalClicks: 0,
-                nanobotsProduced: 0
-            }
+            perSecond: 0,
+            lastSave: null
         };
-
-        // Fonction pour afficher un popup d'amélioration
-        function showUpgradePopup(title, description) {
-            const popup = document.getElementById('upgrade-popup');
-            const popupTitle = document.getElementById('popup-title');
-            const popupDescription = document.getElementById('popup-description');
-            const popupClose = document.getElementById('popup-close');
+        
+        // Éléments DOM
+        const elements = {
+            menu: document.getElementById('menu'),
+            game: document.getElementById('game'),
+            nanobots: document.getElementById('nanobots'),
+            perSecond: document.getElementById('per-second'),
+            notification: document.getElementById('notification')
+        };
+        
+        // Initialisation
+        function init() {
+            console.log("Initialisation de l'application");
             
-            popupTitle.textContent = title;
-            popupDescription.textContent = description;
-            
-            popup.style.display = 'block';
-            
-            // Animation d'entrée avec PixiJS
-            const x = window.innerWidth / 2;
-            const y = window.innerHeight / 2;
-            for (let i = 0; i < 30; i++) {
-                setTimeout(() => {
-                    createPurchaseEffect(x, y, 0x00aaff);
-                }, i * 50);
-            }
-            
-            popupClose.onclick = function() {
-                popup.style.display = 'none';
-            };
-        }
-
-        // Fonction pour créer un effet visuel de feedback
-        function createVisualFeedback(element, text, type = 'default') {
-            // DOM feedback
-            const feedback = document.createElement('div');
-            feedback.textContent = text;
-            feedback.classList.add('resource-feedback');
-            
-            // Différents types de feedback
-            if (type === 'success') {
-                feedback.style.color = '#4CAF50';
-            } else if (type === 'warning') {
-                feedback.style.color = '#FF9800';
-            } else if (type === 'error') {
-                feedback.style.color = '#F44336';
-            } else if (type === 'nanites') {
-                feedback.style.color = '#64ffda';
-            } else if (type === 'energy') {
-                feedback.style.color = '#ffeb3b';
-            } else if (type === 'matter') {
-                feedback.style.color = '#ff7043';
-            }
-            
-            // Positionner le feedback par rapport à l'élément
-            const rect = element.getBoundingClientRect();
-            feedback.style.left = `${rect.left + rect.width / 2}px`;
-            feedback.style.top = `${rect.top + 5}px`;
-            
-            document.body.appendChild(feedback);
-            
-            // Supprimer après l'animation
-            setTimeout(() => {
-                if (feedback && feedback.parentNode) {
-                    feedback.parentNode.removeChild(feedback);
-                }
-            }, 1000);
-        }
-
-        // Fonction pour formater les grands nombres
-        function formatNumber(num) {
-            if (num >= 1000000) {
-                return (num / 1000000).toFixed(2) + 'M';
-            } else if (num >= 1000) {
-                return (num / 1000).toFixed(1) + 'K';
-            } else {
-                return Math.floor(num);
-            }
-        }
-
-        // Fonctions principales du jeu
-        function generateResource(resource) {
-            game.stats.totalClicks++;
-            const previousValue = game.resources[resource];
-            game.resources[resource] += game.clickPower * game.multipliers[resource];
-            updateUI();
-            
-            // Créer effet de clic avec PixiJS
-            const button = document.getElementById(`${resource}-button`);
-            const rect = button.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            
-            createClickParticles(x, y, resource);
-            createVisualFeedback(button, `+${game.clickPower * game.multipliers[resource]}`, resource);
-            
-            // Animer la valeur qui change
-            const valueElement = document.getElementById(`${resource}-value`);
-            if (valueElement && game.resources[resource] !== previousValue) {
-                valueElement.classList.remove('value-updated');
-                void valueElement.offsetWidth; // Force reflow
-                valueElement.classList.add('value-updated');
-            }
-        }
-
-        function buyProducer(producerId) {
-            const producer = game.producers.find(p => p.id === producerId);
-            if (!producer) return;
-            
-            const cost = Math.floor(producer.baseCost * Math.pow(producer.costMultiplier, producer.count));
-            
-            if (game.resources[producer.resource] >= cost) {
-                game.resources[producer.resource] -= cost;
-                producer.count++;
-                updateUI();
-                
-                // Effet visuel et feedback avec PixiJS
-                const button = document.querySelector(`button[data-producer="${producerId}"]`);
-                if (button) {
-                    const rect = button.getBoundingClientRect();
-                    const x = rect.left + rect.width / 2;
-                    const y = rect.top + rect.height / 2;
-                    
-                    createPurchaseEffect(x, y, resourceColors[producer.resource]);
-                    createVisualFeedback(button, `+1 ${producer.name}`, 'success');
-                    
-                    // Animer le panneau du producteur
-                    const panel = button.closest('.resource-panel');
-                    if (panel) {
-                        panel.classList.add('highlight');
-                        setTimeout(() => {
-                            panel.classList.remove('highlight');
-                        }, 1000);
-                    }
-                }
-            } else {
-                // Feedback d'échec
-                const button = document.querySelector(`button[data-producer="${producerId}"]`);
-                if (button) {
-                    createVisualFeedback(button, `Ressources insuffisantes`, 'error');
-                }
-            }
-        }
-
-        function buyUpgrade(upgradeId) {
-            const upgrade = game.upgrades.find(u => u.id === upgradeId);
-            if (!upgrade || upgrade.purchased) return;
-            
-            if (game.nanobots >= upgrade.cost) {
-                game.nanobots -= upgrade.cost;
-                upgrade.purchased = true;
-                upgrade.effect();
-                updateUI();
-                
-                // Effet visuel avec PixiJS
-                const button = document.querySelector(`button[data-upgrade="${upgradeId}"]`);
-                if (button) {
-                    const rect = button.getBoundingClientRect();
-                    const x = rect.left + rect.width / 2;
-                    const y = rect.top + rect.height / 2;
-                    
-                    // Effet plus élaboré pour les améliorations
-                    for (let i = 0; i < 5; i++) {
-                        setTimeout(() => {
-                            createPurchaseEffect(x, y, 0x00aaff);
-                        }, i * 100);
-                    }
-                    
-                    createVisualFeedback(button, `Amélioration activée!`, 'success');
-                    button.disabled = true;
-                    button.style.opacity = "0.5";
-                }
-            } else {
-                // Feedback d'échec
-                const button = document.querySelector(`button[data-upgrade="${upgradeId}"]`);
-                if (button) {
-                    createVisualFeedback(button, `Nanobots insuffisants`, 'error');
-                }
-            }
-        }
-
-        function updateProduction() {
-            for (const producer of game.producers) {
-                const production = producer.count * producer.baseProduction * game.multipliers[producer.resource];
-                game.resources[producer.resource] += production;
-            }
-            
-            // Auto-conversion si l'amélioration est achetée
-            if (game.autoConversion) {
-                convertToNanobots();
-            }
-            
-            updateUI();
-        }
-
-        function convertToNanobots() {
-            // Convertit les ressources en nanobots à un taux avantageux
-            const conversionRate = 0.1; // 10% des ressources sont converties par seconde
-            
-            let nanobotsGained = 0;
-            
-            for (const resource in game.resources) {
-                const amount = game.resources[resource] * conversionRate;
-                if (amount >= 1) {
-                    const converted = Math.floor(amount);
-                    game.resources[resource] -= converted;
-                    nanobotsGained += converted;
-                }
-            }
-            
-            if (nanobotsGained > 0) {
-                game.nanobots += nanobotsGained;
-                game.stats.nanobotsProduced += nanobotsGained;
-                
-                // Effet visuel pour l'auto-conversion avec PixiJS
-                const totalNanobots = document.getElementById('total-nanobots');
-                if (totalNanobots) {
-                    const rect = totalNanobots.getBoundingClientRect();
-                    const x = rect.left + rect.width / 2;
-                    const y = rect.top + rect.height / 2;
-                    
-                    createPurchaseEffect(x, y, 0x00aaff);
-                    createVisualFeedback(totalNanobots, `+${nanobotsGained} nanobots`, 'success');
-                }
-            }
-        }
-
-        function updateStats() {
-            // Mettre à jour les statistiques
-            const playTime = document.getElementById('play-time');
-            const totalClicks = document.getElementById('total-clicks');
-            const nanobotsProduced = document.getElementById('nanobots-produced');
-            const progressPercent = document.getElementById('progress-percent');
-            const progressFill = document.getElementById('progress-fill');
-            
-            // Calculer le temps de jeu
-            const elapsedTime = Math.floor((Date.now() - game.stats.startTime) / 1000);
-            const hours = Math.floor(elapsedTime / 3600);
-            const minutes = Math.floor((elapsedTime % 3600) / 60);
-            const seconds = elapsedTime % 60;
-            
-            playTime.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            totalClicks.textContent = game.stats.totalClicks;
-            nanobotsProduced.textContent = formatNumber(game.stats.nanobotsProduced);
-            
-            // Calcul de la progression (objectif arbitraire de 10000 nanobots)
-            const goal = 10000;
-            const progress = Math.min(100, Math.floor((game.nanobots / goal) * 100));
-            progressPercent.textContent = `${progress}%`;
-            progressFill.style.width = `${progress}%`;
-        }
-
-        function updateUI() {
-            // Mettre à jour l'affichage des ressources
-            for (const resource in game.resources) {
-                const valueElement = document.getElementById(`${resource}-value`);
-                const rateElement = document.getElementById(`${resource}-rate`);
-                
-                if (valueElement) {
-                    valueElement.textContent = formatNumber(game.resources[resource]);
-                }
-                
-                if (rateElement) {
-                    // Calculer le taux de production par seconde
-                    const producer = game.producers.find(p => p.resource === resource);
-                    if (producer) {
-                        const rate = producer.count * producer.baseProduction * game.multipliers[resource];
-                        rateElement.textContent = `${formatNumber(rate)} par seconde`;
-                    }
-                }
-            }
-            
-            // Mettre à jour l'affichage des nanobots
-            const totalNanobots = document.getElementById('total-nanobots');
-            if (totalNanobots) {
-                totalNanobots.textContent = `Nanobots: ${formatNumber(game.nanobots)}`;
-            }
-            
-            // Mettre à jour les producteurs
-            updateProducersUI();
-            
-            // Mettre à jour les améliorations
-            updateUpgradesUI();
-            
-            // Mettre à jour les statistiques
-            updateStats();
-        }
-
-        function updateProducersUI() {
-            const producersContainer = document.getElementById('producers-container');
-            if (!producersContainer) return;
-            
-            // Vider le conteneur
-            producersContainer.innerHTML = '';
-            
-            // Ajouter les producteurs
-            for (const producer of game.producers) {
-                const cost = Math.floor(producer.baseCost * Math.pow(producer.costMultiplier, producer.count));
-                const production = producer.baseProduction * game.multipliers[producer.resource];
-                
-                const producerElement = document.createElement('div');
-                producerElement.className = 'resource-panel';
-                producerElement.innerHTML = `
-                    <div class="resource-header">
-                        <div>${producer.name}</div>
-                        <div class="producer-count">${producer.count}</div>
-                    </div>
-                    <div><i class="fas ${producer.icon}"></i> ${producer.description}</div>
-                    <div class="resource-rate">Produit ${formatNumber(production)} ${producer.resource} par unité</div>
-                    <button class="game-button" data-producer="${producer.id}">
-                        <span>Acheter ${producer.name}</span>
-                        <span class="button-cost">${formatNumber(cost)} ${producer.resource}</span>
-                    </button>
-                `;
-                
-                // Ajouter l'événement d'achat
-                const button = producerElement.querySelector('button');
-                button.addEventListener('click', () => buyProducer(producer.id));
-                
-                // Ajouter le producteur à l'interface
-                producersContainer.appendChild(producerElement);
-            }
-        }
-
-        function updateUpgradesUI() {
-            const upgradesContainer = document.getElementById('upgrades-container');
-            if (!upgradesContainer) return;
-            
-            // Vider le conteneur
-            upgradesContainer.innerHTML = '';
-            
-            // Ajouter les améliorations
-            for (const upgrade of game.upgrades) {
-                if (upgrade.purchased) continue; // Ne pas afficher les améliorations déjà achetées
-                
-                const upgradeElement = document.createElement('div');
-                upgradeElement.className = 'resource-panel';
-                upgradeElement.innerHTML = `
-                    <div class="resource-header">
-                        <div>${upgrade.name}</div>
-                        <i class="fas ${upgrade.icon}" style="color: var(--accent-color)"></i>
-                    </div>
-                    <div>${upgrade.description}</div>
-                    <button class="game-button" data-upgrade="${upgrade.id}">
-                        <span>Acheter amélioration</span>
-                        <span class="button-cost">${formatNumber(upgrade.cost)} nanobots</span>
-                    </button>
-                `;
-                
-                // Ajouter l'événement d'achat
-                const button = upgradeElement.querySelector('button');
-                button.addEventListener('click', () => buyUpgrade(upgrade.id));
-                
-                // Ajouter l'amélioration à l'interface
-                upgradesContainer.appendChild(upgradeElement);
-            }
-        }
-
-        // Initialisation du jeu
-        function initGame() {
-            console.log("Initialisation du jeu V18 avec PixiJS");
-            
-            // Créer les particules d'arrière-plan
-            createBackgroundParticles();
-            
-            // Ajouter les écouteurs d'événements pour les boutons de ressources
-            document.getElementById('nanites-button').addEventListener('click', () => generateResource('nanites'));
-            document.getElementById('energy-button').addEventListener('click', () => generateResource('energy'));
-            document.getElementById('matter-button').addEventListener('click', () => generateResource('matter'));
-            
-            // Restaurer la sauvegarde si elle existe
+            // Charger les données sauvegardées
             loadGame();
+            
+            // Configurer les boutons du menu
+            document.getElementById('btn-new-game').addEventListener('click', newGame);
+            document.getElementById('btn-continue').addEventListener('click', continueGame);
+            document.getElementById('btn-reset').addEventListener('click', resetGame);
+            
+            // Configurer les boutons du jeu
+            document.getElementById('btn-produce').addEventListener('click', produceNanobots);
+            document.getElementById('btn-save').addEventListener('click', saveGame);
+            document.getElementById('btn-back').addEventListener('click', backToMenu);
+            
+            console.log("Initialisation terminée");
+        }
+        
+        // Fonctions du menu
+        function newGame() {
+            console.log("Nouvelle partie");
+            
+            // Réinitialiser l'état du jeu
+            game = {
+                nanobots: 0,
+                perSecond: 0,
+                lastSave: null
+            };
             
             // Mettre à jour l'interface
             updateUI();
             
-            // Démarrer la boucle de jeu
-            setInterval(gameLoop, 1000);
+            // Afficher le jeu
+            elements.menu.style.display = 'none';
+            elements.game.style.display = 'block';
+            
+            showNotification("Nouvelle partie démarrée!");
         }
-
-        function gameLoop() {
-            updateProduction();
-            saveGame();
+        
+        function continueGame() {
+            console.log("Continuer la partie");
+            
+            if (game.lastSave) {
+                // Afficher le jeu
+                elements.menu.style.display = 'none';
+                elements.game.style.display = 'block';
+                
+                showNotification("Partie chargée!");
+            } else {
+                showNotification("Aucune sauvegarde trouvée!");
+            }
         }
-
-        // Sauvegarde et chargement
+        
+        function resetGame() {
+            console.log("Réinitialisation des données");
+            
+            if (confirm("Êtes-vous sûr de vouloir réinitialiser toutes les données? Cette action est irréversible.")) {
+                localStorage.removeItem('nanobotGameSave');
+                game = {
+                    nanobots: 0,
+                    perSecond: 0,
+                    lastSave: null
+                };
+                updateUI();
+                showNotification("Données réinitialisées!");
+            }
+        }
+        
+        // Fonctions du jeu
+        function produceNanobots() {
+            console.log("Production de nanobots");
+            
+            game.nanobots += 1;
+            if (game.perSecond < 1) game.perSecond += 0.1;
+            
+            updateUI();
+        }
+        
         function saveGame() {
-            try {
-                const saveData = JSON.stringify(game);
-                safeLocalStorage('set', 'nanobotV18_save', saveData);
-            } catch (error) {
-                console.error("Erreur lors de la sauvegarde:", error);
-            }
+            console.log("Sauvegarde du jeu");
+            
+            game.lastSave = new Date().toISOString();
+            localStorage.setItem('nanobotGameSave', JSON.stringify(game));
+            
+            showNotification("Partie sauvegardée!");
         }
-
+        
         function loadGame() {
-            try {
-                const saveData = safeLocalStorage('get', 'nanobotV18_save');
-                if (saveData) {
-                    const savedGame = JSON.parse(saveData);
-                    Object.assign(game, savedGame);
-                    
-                    // S'assurer que toutes les propriétés nécessaires sont définies
-                    if (!game.stats) game.stats = { startTime: Date.now(), totalClicks: 0, nanobotsProduced: 0 };
-                    if (!game.multipliers) game.multipliers = { nanites: 1, energy: 1, matter: 1 };
-                    if (!game.clickPower) game.clickPower = 1;
-                }
-            } catch (error) {
-                console.error("Erreur lors du chargement:", error);
-            }
-        }
-
-        // Gestion avancée des erreurs
-        window.onerror = function(message, source, lineno, colno, error) {
-            console.error("Erreur JavaScript:", message, "à", source, "ligne", lineno);
-            return false; // Laisser la gestion d'erreur par défaut continuer
-        };
-
-        // Démarrer le jeu dès que le DOM est chargé
-        document.addEventListener('DOMContentLoaded', initGame);
-    </script>
-<script>
-// Début du script pour corriger les bugs et simplifier l'interface
-
-// 1. Correction de l'affichage des nanites par seconde
-function fixResourcesDisplay() {
-    // S'assurer que les compteurs par seconde sont visibles
-    const updateResourcesDisplay = () => {
-        // Mettre à jour l'affichage des nanites par seconde
-        if (game && game.nanites) {
-            document.getElementById('nanites-per-second').textContent = formatNumber(calculateNanitesPerSecond());
-        }
-        
-        // Mettre à jour l'affichage des producteurs
-        if (game && game.producers) {
-            game.producers.forEach(producer => {
-                const countElement = document.getElementById(`${producer.id}-count`);
-                if (countElement) {
-                    countElement.textContent = formatNumber(producer.count);
-                }
-                
-                const productionElement = document.getElementById(`${producer.id}-production`);
-                if (productionElement) {
-                    productionElement.textContent = formatNumber(producer.production);
-                }
-            });
-        }
-    };
-    
-    // Remplacer ou améliorer la fonction existante
-    window.updateResourcesDisplay = updateResourcesDisplay;
-    
-    // Assurer que la fonction est appelée régulièrement
-    setInterval(updateResourcesDisplay, 1000);
-}
-
-// 2. Implémentation de l'interface évolutive
-function implementProgressiveUI() {
-    // Définir les niveaux de progression
-    const progressionLevels = [
-        { nanites: 0, unlockedSections: ['basic-resources', 'basic-producers'] },
-        { nanites: 100, unlockedSections: ['basic-upgrades'] },
-        { nanites: 500, unlockedSections: ['advanced-producers'] },
-        { nanites: 2000, unlockedSections: ['advanced-upgrades'] },
-        { nanites: 10000, unlockedSections: ['special-features'] }
-    ];
-    
-    // Fonction pour vérifier et mettre à jour l'interface en fonction de la progression
-    const updateUIBasedOnProgress = () => {
-        if (!game || !game.nanites) return;
-        
-        const totalNanites = game.nanites.amount + (game.nanites.totalProduced || 0);
-        
-        // Trouver le niveau actuel
-        let currentLevel = 0;
-        for (let i = progressionLevels.length - 1; i >= 0; i--) {
-            if (totalNanites >= progressionLevels[i].nanites) {
-                currentLevel = i;
-                break;
-            }
-        }
-        
-        // Recueillir toutes les sections qui doivent être déverrouillées
-        const sectionsToUnlock = [];
-        for (let i = 0; i <= currentLevel; i++) {
-            sectionsToUnlock.push(...progressionLevels[i].unlockedSections);
-        }
-        
-        // Mettre à jour la visibilité des sections
-        document.querySelectorAll('.game-section').forEach(section => {
-            const sectionId = section.getAttribute('data-section');
-            if (sectionsToUnlock.includes(sectionId)) {
-                section.classList.remove('locked');
-                
-                // Animation de déverrouillage si c'est nouveau
-                if (section.classList.contains('new-unlock')) {
-                    section.classList.remove('new-unlock');
-                    
-                    // Effet de déverrouillage
-                    gsap.fromTo(section, 
-                        { scale: 0.8, opacity: 0, y: 20 },
-                        { scale: 1, opacity: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }
-                    );
-                    
-                    // Notification de déverrouillage
-                    showNotification(`Nouvelle section déverrouillée : ${section.querySelector('h3')?.textContent || 'Section'}`);
+            console.log("Chargement du jeu");
+            
+            const savedGame = localStorage.getItem('nanobotGameSave');
+            if (savedGame) {
+                try {
+                    game = JSON.parse(savedGame);
+                    updateUI();
+                    console.log("Sauvegarde chargée avec succès");
+                } catch (error) {
+                    console.error("Erreur lors du chargement de la sauvegarde:", error);
                 }
             } else {
-                section.classList.add('locked');
+                console.log("Aucune sauvegarde trouvée");
             }
-        });
-    };
-    
-    // Fonction pour afficher une notification
-    const showNotification = (message) => {
-        const notifContainer = document.getElementById('notifications-container');
-        if (!notifContainer) return;
-        
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        notification.innerHTML = `
-            <div class="notification-icon"><i class="fas fa-unlock"></i></div>
-            <div class="notification-content">${message}</div>
-        `;
-        
-        notifContainer.appendChild(notification);
-        
-        // Animation d'entrée
-        gsap.fromTo(notification, 
-            { x: 100, opacity: 0 },
-            { x: 0, opacity: 1, duration: 0.5, ease: "power2.out" }
-        );
-        
-        // Disparition automatique
-        setTimeout(() => {
-            gsap.to(notification, {
-                x: 100, opacity: 0, duration: 0.5, ease: "power2.in",
-                onComplete: () => notification.remove()
-            });
-        }, 5000);
-    };
-    
-    // Vérifier régulièrement la progression
-    setInterval(updateUIBasedOnProgress, 2000);
-    
-    // Vérifier immédiatement au chargement
-    window.addEventListener('game-loaded', updateUIBasedOnProgress);
-}
-
-// 3. Optimisation de l'interface graphique
-function enhanceVisualFeedback() {
-    // Améliorer le retour visuel sur les clics et actions
-    const enhanceClickFeedback = () => {
-        // Améliorer le retour visuel pour le clic sur les ressources
-        const resourceButtons = document.querySelectorAll('.resource-button');
-        resourceButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                // Créer un effet de particule au point de clic
-                createClickParticles(e.clientX, e.clientY);
-                
-                // Animation de pulsation
-                gsap.fromTo(button, 
-                    { scale: 0.95 },
-                    { scale: 1, duration: 0.3, ease: "elastic.out(1.2, 0.4)" }
-                );
-            });
-        });
-    };
-    
-    // Fonction pour créer des particules au clic
-    const createClickParticles = (x, y) => {
-        if (!window.particleContainer) return;
-        
-        const numParticles = 8;
-        const particles = [];
-        
-        for (let i = 0; i < numParticles; i++) {
-            // Créer une particule avec PixiJS
-            const particle = new PIXI.Graphics();
-            particle.beginFill(Math.random() > 0.5 ? 0x00d2ff : 0x64ffda);
-            particle.drawCircle(0, 0, 3 + Math.random() * 4);
-            particle.endFill();
-            particle.position.set(x, y);
-            particle.alpha = 0.7 + Math.random() * 0.3;
-            
-            // Ajouter au conteneur
-            window.particleContainer.addChild(particle);
-            particles.push(particle);
-            
-            // Animation avec GSAP
-            const angle = (i / numParticles) * Math.PI * 2;
-            const distance = 30 + Math.random() * 30;
-            
-            gsap.to(particle, {
-                pixi: { 
-                    x: x + Math.cos(angle) * distance,
-                    y: y + Math.sin(angle) * distance,
-                    alpha: 0,
-                    scale: 0.5 + Math.random() * 0.5
-                },
-                duration: 0.5 + Math.random() * 0.5,
-                ease: "power2.out",
-                onComplete: () => {
-                    window.particleContainer.removeChild(particle);
-                }
-            });
-        }
-    };
-    
-    // Initialiser une fois que PixiJS est prêt
-    window.addEventListener('pixi-ready', enhanceClickFeedback);
-}
-
-// 4. Corrections spécifiques à l'interface
-function applySpecificFixes() {
-    // Assurer que les compteurs de production sont correctement mis à jour
-    const fixProductionCounters = () => {
-        // Vérifier si la fonction gameLoop existe et la modifier
-        if (window.gameLoop) {
-            const originalGameLoop = window.gameLoop;
-            window.gameLoop = function() {
-                originalGameLoop();
-                
-                // Mise à jour des compteurs spécifiques
-                if (game && game.producers) {
-                    game.producers.forEach(producer => {
-                        // Mettre à jour le compteur
-                        const countElement = document.getElementById(`${producer.id}-count`);
-                        if (countElement) {
-                            countElement.textContent = formatNumber(producer.count);
-                        }
-                        
-                        // Mettre à jour la production
-                        const productionElement = document.getElementById(`${producer.id}-production`);
-                        if (productionElement) {
-                            const production = producer.count * producer.production;
-                            productionElement.textContent = formatNumber(production);
-                        }
-                    });
-                }
-                
-                // Mise à jour du compteur de nanites par seconde
-                const nanitesPerSecondElement = document.getElementById('nanites-per-second');
-                if (nanitesPerSecondElement && game && game.nanites) {
-                    const nanitesPerSecond = calculateNanitesPerSecond();
-                    nanitesPerSecondElement.textContent = formatNumber(nanitesPerSecond);
-                }
-            };
-        }
-    };
-    
-    // Calculer le nombre de nanites par seconde
-    window.calculateNanitesPerSecond = function() {
-        if (!game || !game.producers) return 0;
-        
-        let total = 0;
-        game.producers.forEach(producer => {
-            if (producer.id === 'producer1') { // Nano-Assembleurs
-                total += producer.count * producer.production;
-            }
-            // Ajouter d'autres producteurs si nécessaire
-        });
-        
-        // Appliquer les multiplicateurs
-        if (game.multipliers && game.multipliers.production) {
-            total *= game.multipliers.production;
         }
         
-        return total;
-    };
-    
-    // Exécuter les corrections
-    fixProductionCounters();
-}
-
-// Appliquer toutes les corrections au chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-    // Appliquer les corrections
-    fixResourcesDisplay();
-    implementProgressiveUI();
-    enhanceVisualFeedback();
-    applySpecificFixes();
-    
-    console.log('Corrections appliquées pour la version 20 !');
-});
-
-</script>
+        function backToMenu() {
+            console.log("Retour au menu");
+            
+            // Sauvegarder automatiquement
+            saveGame();
+            
+            // Afficher le menu
+            elements.game.style.display = 'none';
+            elements.menu.style.display = 'block';
+        }
+        
+        // Fonctions utilitaires
+        function updateUI() {
+            elements.nanobots.textContent = game.nanobots.toFixed(0);
+            elements.perSecond.textContent = game.perSecond.toFixed(1);
+        }
+        
+        function showNotification(message) {
+            elements.notification.textContent = message;
+            elements.notification.style.display = 'block';
+            
+            setTimeout(() => {
+                elements.notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Boucle de jeu
+        function gameLoop() {
+            game.nanobots += game.perSecond / 10;
+            updateUI();
+        }
+        
+        // Démarrer la boucle de jeu
+        setInterval(gameLoop, 100);
+        
+        // Initialiser l'application au chargement
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
