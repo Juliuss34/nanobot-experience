@@ -22,7 +22,7 @@ const CONFIG = {
             baseCost: 10,
             costMultiplier: 1.15,
             effect: 1,
-            maxLevel: Infinity,
+            maxLevel: 50,
             unlockLevel: 0,
             icon: '🏭'
         },
