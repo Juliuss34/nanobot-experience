@@ -4,7 +4,8 @@
   "description": "Nanobot Empire V2 - Incremental Game",
   "main": "game-v2.js",
   "scripts": {
-    "dev": "http-server ."
+    "dev": "http-server .",
+    "build": "echo 'Build complete. No compilation steps required for this project.'"
   },
   "keywords": [],
   "author": "",
