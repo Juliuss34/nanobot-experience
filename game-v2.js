@@ -246,6 +246,17 @@ function cacheElements() {
     elements.modalMessage = document.getElementById('modal-message');
     elements.modalConfirm = document.getElementById('modal-confirm');
     elements.modalCancel = document.getElementById('modal-cancel');
+    
+    // Vérifier que tous les éléments critiques existent
+    const criticalElements = [
+        'main-menu', 'game-screen', 'nanobots', 'energy', 'upgrades-container', 'toast-container'
+    ];
+    
+    criticalElements.forEach(id => {
+        if (!document.getElementById(id)) {
+            console.error(`Élément critique manquant: ${id}`);
+        }
+    });
 }
 
 function setupEventListeners() {
@@ -706,6 +717,9 @@ function updateAchievementsCount() {
 function gameLoop() {
     if (currentScreen !== 'game-screen') return;
     
+    // Vérifier que le jeu est initialisé
+    if (!gameState || !gameState.nanobots === undefined) return;
+    
     const deltaTime = CONFIG.tickRate / 1000;
     
     // Production automatique
@@ -725,13 +739,17 @@ function gameLoop() {
     updateLevel();
     
     // Vérification des succès
-    checkAchievements();
+    if (Math.random() < 0.1) { // 10% de chance à chaque tick
+        checkAchievements();
+    }
     
     // Mise à jour de l'interface
     updateUI();
     
     // Mise à jour du temps de jeu
-    gameState.stats.totalPlayTime = Date.now() - gameState.stats.gameStartTime;
+    if (gameState.stats && gameState.stats.gameStartTime) {
+        gameState.stats.totalPlayTime = Date.now() - gameState.stats.gameStartTime;
+    }
 }
 
 function startGameLoop() {
@@ -761,40 +779,56 @@ function stopAutoSave() {
 function updateUI() {
     if (currentScreen !== 'game-screen') return;
     
+    // Vérifier que les éléments existent avant de les mettre à jour
+    if (!elements.nanobots || !elements.energy) return;
+    
     // Ressources
     elements.nanobots.textContent = formatNumber(gameState.nanobots);
     elements.energy.textContent = formatNumber(gameState.energy);
-    elements.research.textContent = formatNumber(gameState.research);
-    elements.rareMaterials.textContent = formatNumber(gameState.rareMaterials);
-    elements.nanobotsRate.textContent = formatNumber(gameState.productionRate);
-    elements.researchRate.textContent = formatNumber(gameState.researchRate);
-    elements.materialsRate.textContent = formatNumber(gameState.rareMaterialsRate);
-    elements.energyMax.textContent = formatNumber(gameState.energyCapacity);
+    if (elements.research) elements.research.textContent = formatNumber(gameState.research);
+    if (elements.rareMaterials) elements.rareMaterials.textContent = formatNumber(gameState.rareMaterials);
+    if (elements.nanobotsRate) elements.nanobotsRate.textContent = formatNumber(gameState.productionRate);
+    if (elements.researchRate) elements.researchRate.textContent = formatNumber(gameState.researchRate);
+    if (elements.materialsRate) elements.materialsRate.textContent = formatNumber(gameState.rareMaterialsRate);
+    if (elements.energyMax) elements.energyMax.textContent = formatNumber(gameState.energyCapacity);
     
     // Barre d'énergie
-    const energyPercent = (gameState.energy / gameState.energyCapacity) * 100;
-    elements.energyFill.style.width = energyPercent + '%';
+    if (elements.energyFill) {
+        const energyPercent = (gameState.energy / gameState.energyCapacity) * 100;
+        elements.energyFill.style.width = energyPercent + '%';
+    }
     
     // Niveau et prestige
-    const currentLevelInfo = CONFIG.levels[gameState.level];
-    elements.levelDisplay.textContent = `Niveau ${gameState.level + 1}: ${currentLevelInfo.name}`;
-    elements.prestigePoints.textContent = formatNumber(gameState.prestigePoints);
+    if (elements.levelDisplay) {
+        const currentLevelInfo = CONFIG.levels[gameState.level];
+        elements.levelDisplay.textContent = `Niveau ${gameState.level + 1}: ${currentLevelInfo.name}`;
+    }
+    if (elements.prestigePoints) {
+        elements.prestigePoints.textContent = formatNumber(gameState.prestigePoints);
+    }
     
     // Barre de progression du niveau
-    const nextLevel = CONFIG.levels[gameState.level + 1];
-    if (nextLevel) {
-        const progress = Math.min(100, (gameState.totalNanobotsProduced / nextLevel.requirement) * 100);
-        elements.levelProgress.style.width = progress + '%';
-        elements.levelProgressText.textContent = Math.floor(progress) + '%';
-    } else {
-        elements.levelProgress.style.width = '100%';
-        elements.levelProgressText.textContent = 'MAX';
+    if (elements.levelProgress && elements.levelProgressText) {
+        const nextLevel = CONFIG.levels[gameState.level + 1];
+        if (nextLevel) {
+            const progress = Math.min(100, (gameState.totalNanobotsProduced / nextLevel.requirement) * 100);
+            elements.levelProgress.style.width = progress + '%';
+            elements.levelProgressText.textContent = Math.floor(progress) + '%';
+        } else {
+            elements.levelProgress.style.width = '100%';
+            elements.levelProgressText.textContent = 'MAX';
+        }
     }
     
     // Prestige
-    const prestigeGain = calculatePrestigeGain();
-    elements.prestigeGain.textContent = formatNumber(prestigeGain);
-    document.getElementById('btn-prestige').disabled = prestigeGain === 0;
+    if (elements.prestigeGain) {
+        const prestigeGain = calculatePrestigeGain();
+        elements.prestigeGain.textContent = formatNumber(prestigeGain);
+        const prestigeBtn = document.getElementById('btn-prestige');
+        if (prestigeBtn) {
+            prestigeBtn.disabled = prestigeGain === 0;
+        }
+    }
     
     // Améliorations
     updateUpgradesDisplay();
@@ -958,6 +992,13 @@ function initializeParticles() {
     
     clearParticles();
     
+    // Vérifier que le conteneur de particules existe
+    const particlesContainer = document.getElementById('particles');
+    if (!particlesContainer) {
+        console.warn('Particles container not found');
+        return;
+    }
+    
     particlesInterval = setInterval(() => {
         if (currentScreen === 'game-screen' && gameState.settings.particles) {
             createParticle();
@@ -966,13 +1007,16 @@ function initializeParticles() {
 }
 
 function createParticle() {
+    const particlesContainer = document.getElementById('particles');
+    if (!particlesContainer) return;
+    
     const particle = document.createElement('div');
     particle.className = 'particle';
     particle.style.left = Math.random() * 100 + '%';
     particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
     particle.style.opacity = Math.random() * 0.6 + 0.2;
     
-    document.getElementById('particles').appendChild(particle);
+    particlesContainer.appendChild(particle);
     
     setTimeout(() => {
         if (particle.parentNode) {
@@ -996,6 +1040,11 @@ function clearParticles() {
 // Système de notifications
 function showToast(message, type = 'info', duration = 3000) {
     if (!gameState.settings.notifications) return;
+    
+    if (!elements.toastContainer) {
+        console.warn('Toast container not found');
+        return;
+    }
     
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -1062,19 +1111,46 @@ function loadGame() {
     if (savedGame) {
         try {
             const loaded = JSON.parse(savedGame);
-            gameState = { ...gameState, ...loaded };
+            
+            // Fusionner avec validation
+            Object.keys(loaded).forEach(key => {
+                if (gameState.hasOwnProperty(key)) {
+                    gameState[key] = loaded[key];
+                }
+            });
             
             // Assurer la compatibilité avec les nouvelles versions
             if (!gameState.settings) {
                 gameState.settings = { ...CONFIG.settings };
             }
             
-            if (!gameState.stats.maxNanobotsOwned) {
+            if (!gameState.stats) {
+                gameState.stats = {
+                    totalClicks: 0,
+                    totalUpgradesPurchased: 0,
+                    gameStartTime: Date.now(),
+                    totalPlayTime: 0,
+                    maxNanobotsOwned: 0,
+                    maxEnergyReached: 100
+                };
+            }
+            
+            if (gameState.stats.maxNanobotsOwned === undefined) {
                 gameState.stats.maxNanobotsOwned = gameState.nanobots;
             }
             
-            if (!gameState.stats.maxEnergyReached) {
+            if (gameState.stats.maxEnergyReached === undefined) {
                 gameState.stats.maxEnergyReached = gameState.energy;
+            }
+            
+            // Assurer que les améliorations existent
+            if (!gameState.upgrades) {
+                gameState.upgrades = {};
+            }
+            
+            // Assurer que les succès existent
+            if (!gameState.achievements) {
+                gameState.achievements = {};
             }
             
             applyUpgradeEffects();
@@ -1082,6 +1158,8 @@ function loadGame() {
         } catch (error) {
             console.error("❌ Erreur lors du chargement:", error);
             showToast('Erreur lors du chargement de la sauvegarde!', 'error');
+            // Réinitialiser en cas d'erreur critique
+            localStorage.removeItem(CONFIG.saveKey);
         }
     }
 }
@@ -1144,6 +1222,7 @@ function resetGame() {
 
 // Utilitaires
 function formatNumber(num) {
+    if (typeof num !== 'number' || isNaN(num)) return '0';
     if (num < 1000) return Math.floor(num).toString();
     if (num < 1000000) return (num / 1000).toFixed(1) + 'K';
     if (num < 1000000000) return (num / 1000000).toFixed(1) + 'M';
@@ -1165,11 +1244,14 @@ function formatTime(ms) {
 }
 
 // Initialiser le jeu au chargement de la page
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    // Attendre un peu pour s'assurer que tout est chargé
+    setTimeout(init, 100);
+});
 
 // Sauvegarder avant de fermer la page
 window.addEventListener('beforeunload', () => {
-    if (gameState.settings.autoSave) {
+    if (gameState && gameState.settings && gameState.settings.autoSave) {
         saveGame(false);
     }
 });
