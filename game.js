@@ -646,19 +646,6 @@ function loadGame() {
             const loaded = JSON.parse(savedGame);
             gameState = { ...gameState, ...loaded };
             
-            // Calculer le temps hors ligne
-            if (gameState.lastSave) {
-                const offlineTime = Date.now() - new Date(gameState.lastSave).getTime();
-                const offlineSeconds = offlineTime / 1000;
-                
-                if (offlineSeconds > 60) { // Plus d'une minute hors ligne
-                    const offlineProduction = gameState.productionRate * offlineSeconds;
-                    gameState.nanobots += offlineProduction;
-                    
-                    showNotification(`Bienvenue! Vous avez produit ${formatNumber(offlineProduction)} nanobots hors ligne.`, "success");
-                }
-            }
-            
             applyUpgradeEffects();
             console.log("📁 Sauvegarde chargée");
         } catch (error) {
