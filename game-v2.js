@@ -1,8 +1,15 @@
-// Configuration du jeu V2
+// Configuration du jeu V2 - Version finale
 const CONFIG = {
     saveKey: 'nanobotEmpireV2Save',
-    tickRate: 50, // ms - Plus fluide
+    tickRate: 50, // ms
     autoSaveInterval: 15000, // 15 secondes
+    
+    // Objectif final du jeu
+    FINAL_GOAL: {
+        nanobots: 1000000000, // 1 milliard de nanobots
+        level: 10,
+        description: "Domination technologique complète"
+    },
     
     levels: [
         { name: "Débutant", requirement: 0, description: "Commencez votre empire technologique", energyBonus: 0 },
@@ -10,7 +17,12 @@ const CONFIG = {
         { name: "Ingénieur", requirement: 1000, description: "Maîtrisez la production automatisée", energyBonus: 50 },
         { name: "Scientifique", requirement: 10000, description: "Débloquez la recherche avancée", energyBonus: 100 },
         { name: "Innovateur", requirement: 100000, description: "Créez des technologies révolutionnaires", energyBonus: 200 },
-        { name: "Visionnaire", requirement: 1000000, description: "Votre empire s'étend à travers les dimensions", energyBonus: 500 }
+        { name: "Visionnaire", requirement: 1000000, description: "Votre empire s'étend rapidement", energyBonus: 500 },
+        { name: "Maître", requirement: 10000000, description: "Contrôlez la technologie mondiale", energyBonus: 1000 },
+        { name: "Empereur", requirement: 50000000, description: "Votre empire domine la planète", energyBonus: 2000 },
+        { name: "Transcendant", requirement: 200000000, description: "Au-delà de l'humanité", energyBonus: 5000 },
+        { name: "Dieu Technologique", requirement: 500000000, description: "Maître absolu de la technologie", energyBonus: 10000 },
+        { name: "Singularité", requirement: 1000000000, description: "Fusion parfaite homme-machine", energyBonus: 25000 }
     ],
     
     upgrades: [
@@ -22,7 +34,7 @@ const CONFIG = {
             baseCost: 10,
             costMultiplier: 1.15,
             effect: 1,
-            maxLevel: 50,
+            maxLevel: 100,
             unlockLevel: 0,
             icon: '🏭'
         },
@@ -34,7 +46,7 @@ const CONFIG = {
             baseCost: 50,
             costMultiplier: 1.2,
             effect: 0.1,
-            maxLevel: 20,
+            maxLevel: 50,
             unlockLevel: 1,
             icon: '⚡'
         },
@@ -46,7 +58,7 @@ const CONFIG = {
             baseCost: 200,
             costMultiplier: 1.3,
             effect: 0.5,
-            maxLevel: 15,
+            maxLevel: 30,
             unlockLevel: 2,
             icon: '🔬'
         },
@@ -58,7 +70,7 @@ const CONFIG = {
             baseCost: 1000,
             costMultiplier: 2.5,
             effect: 2,
-            maxLevel: 8,
+            maxLevel: 15,
             unlockLevel: 3,
             icon: '⚛️'
         },
@@ -70,7 +82,7 @@ const CONFIG = {
             baseCost: 5000,
             costMultiplier: 1.8,
             effect: 0.2,
-            maxLevel: 12,
+            maxLevel: 25,
             unlockLevel: 4,
             icon: '💎'
         },
@@ -82,7 +94,7 @@ const CONFIG = {
             baseCost: 2500,
             costMultiplier: 1.6,
             effect: 50,
-            maxLevel: 10,
+            maxLevel: 20,
             unlockLevel: 2,
             icon: '🔋'
         },
@@ -94,9 +106,21 @@ const CONFIG = {
             baseCost: 15000,
             costMultiplier: 3,
             effect: 1.5,
-            maxLevel: 5,
+            maxLevel: 10,
             unlockLevel: 5,
             icon: '🧠'
+        },
+        {
+            id: 'singularity_core',
+            name: 'Cœur de singularité',
+            description: 'Technologie ultime pour atteindre la transcendance',
+            category: 'special',
+            baseCost: 100000000,
+            costMultiplier: 5,
+            effect: 10,
+            maxLevel: 5,
+            unlockLevel: 8,
+            icon: '🌟'
         }
     ],
     
@@ -105,13 +129,17 @@ const CONFIG = {
         { id: 'hundred_nanobots', name: 'Centurion', description: 'Possédez 100 nanobots', icon: '💯', requirement: 100, type: 'nanobots_owned' },
         { id: 'thousand_nanobots', name: 'Millénaire', description: 'Possédez 1000 nanobots', icon: '🏭', requirement: 1000, type: 'nanobots_owned' },
         { id: 'million_nanobots', name: 'Magnat', description: 'Possédez 1 million de nanobots', icon: '🏆', requirement: 1000000, type: 'nanobots_owned' },
+        { id: 'billion_nanobots', name: 'Empereur Technologique', description: 'Possédez 1 milliard de nanobots', icon: '👑', requirement: 1000000000, type: 'nanobots_owned' },
         { id: 'first_upgrade', name: 'Amélioration', description: 'Achetez votre première amélioration', icon: '⬆️', requirement: 1, type: 'upgrades_bought' },
         { id: 'ten_upgrades', name: 'Collectionneur', description: 'Achetez 10 améliorations', icon: '📦', requirement: 10, type: 'upgrades_bought' },
+        { id: 'all_upgrades_max', name: 'Perfectionniste', description: 'Maximisez toutes les améliorations', icon: '🎯', requirement: 1, type: 'all_upgrades_maxed' },
         { id: 'researcher', name: 'Chercheur', description: 'Générez 100 points de recherche', icon: '🔬', requirement: 100, type: 'research_generated' },
         { id: 'energy_master', name: 'Maître de l\'énergie', description: 'Atteignez 1000 d\'énergie', icon: '⚡', requirement: 1000, type: 'energy_max' },
         { id: 'first_prestige', name: 'Renaissance', description: 'Effectuez votre premier prestige', icon: '✨', requirement: 1, type: 'prestiges' },
         { id: 'speed_demon', name: 'Démon de vitesse', description: 'Cliquez 1000 fois', icon: '👆', requirement: 1000, type: 'clicks' },
-        { id: 'materials_collector', name: 'Collectionneur de matériaux', description: 'Possédez 100 matériaux rares', icon: '💎', requirement: 100, type: 'materials_owned' }
+        { id: 'materials_collector', name: 'Collectionneur de matériaux', description: 'Possédez 100 matériaux rares', icon: '💎', requirement: 100, type: 'materials_owned' },
+        { id: 'max_level', name: 'Transcendance', description: 'Atteignez le niveau maximum', icon: '🌟', requirement: 10, type: 'level_reached' },
+        { id: 'game_complete', name: 'Singularité Atteinte', description: 'Terminez le jeu avec succès', icon: '🎊', requirement: 1, type: 'game_completed' }
     ],
     
     settings: {
@@ -153,6 +181,9 @@ let gameState = {
     
     // Succès
     achievements: {},
+    
+    // État du jeu
+    gameCompleted: false,
     
     // Statistiques
     stats: {
@@ -209,6 +240,7 @@ function cacheElements() {
     elements.achievementsScreen = document.getElementById('achievements-screen');
     elements.statsScreen = document.getElementById('stats-screen');
     elements.settingsScreen = document.getElementById('settings-screen');
+    elements.victoryScreen = document.getElementById('victory-screen');
     
     // Ressources
     elements.nanobots = document.getElementById('nanobots');
@@ -261,23 +293,24 @@ function cacheElements() {
 
 function setupEventListeners() {
     // Menu principal
-    document.getElementById('btn-new-game').addEventListener('click', newGame);
-    document.getElementById('btn-continue').addEventListener('click', continueGame);
-    document.getElementById('btn-achievements').addEventListener('click', () => showScreen('achievements-screen'));
-    document.getElementById('btn-stats').addEventListener('click', () => showScreen('stats-screen'));
-    document.getElementById('btn-settings').addEventListener('click', () => showScreen('settings-screen'));
+    document.getElementById('btn-new-game')?.addEventListener('click', newGame);
+    document.getElementById('btn-continue')?.addEventListener('click', continueGame);
+    document.getElementById('btn-achievements')?.addEventListener('click', () => showScreen('achievements-screen'));
+    document.getElementById('btn-stats')?.addEventListener('click', () => showScreen('stats-screen'));
+    document.getElementById('btn-settings')?.addEventListener('click', () => showScreen('settings-screen'));
     
     // Jeu
-    document.getElementById('btn-produce').addEventListener('click', produceNanobots);
-    document.getElementById('btn-research').addEventListener('click', doResearch);
-    document.getElementById('btn-save').addEventListener('click', saveGame);
-    document.getElementById('btn-menu').addEventListener('click', () => showScreen('main-menu'));
-    document.getElementById('btn-prestige').addEventListener('click', doPrestige);
+    document.getElementById('btn-produce')?.addEventListener('click', produceNanobots);
+    document.getElementById('btn-research')?.addEventListener('click', doResearch);
+    document.getElementById('btn-save')?.addEventListener('click', saveGame);
+    document.getElementById('btn-menu')?.addEventListener('click', () => showScreen('main-menu'));
+    document.getElementById('btn-prestige')?.addEventListener('click', doPrestige);
     
     // Navigation
-    document.getElementById('btn-back-achievements').addEventListener('click', () => showScreen('main-menu'));
-    document.getElementById('btn-back-stats').addEventListener('click', () => showScreen('main-menu'));
-    document.getElementById('btn-back-settings').addEventListener('click', () => showScreen('main-menu'));
+    document.getElementById('btn-back-achievements')?.addEventListener('click', () => showScreen('main-menu'));
+    document.getElementById('btn-back-stats')?.addEventListener('click', () => showScreen('main-menu'));
+    document.getElementById('btn-back-settings')?.addEventListener('click', () => showScreen('main-menu'));
+    document.getElementById('btn-back-victory')?.addEventListener('click', () => showScreen('main-menu'));
     
     // Filtres d'améliorations
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -289,7 +322,7 @@ function setupEventListeners() {
     });
     
     // Paramètres
-    document.getElementById('auto-save').addEventListener('change', (e) => {
+    document.getElementById('auto-save')?.addEventListener('change', (e) => {
         gameState.settings.autoSave = e.target.checked;
         if (e.target.checked) {
             startAutoSave();
@@ -298,11 +331,11 @@ function setupEventListeners() {
         }
     });
     
-    document.getElementById('notifications').addEventListener('change', (e) => {
+    document.getElementById('notifications')?.addEventListener('change', (e) => {
         gameState.settings.notifications = e.target.checked;
     });
     
-    document.getElementById('particles-toggle').addEventListener('change', (e) => {
+    document.getElementById('particles-toggle')?.addEventListener('change', (e) => {
         gameState.settings.particles = e.target.checked;
         if (e.target.checked) {
             initializeParticles();
@@ -311,16 +344,16 @@ function setupEventListeners() {
         }
     });
     
-    document.getElementById('btn-export').addEventListener('click', exportSave);
-    document.getElementById('btn-import').addEventListener('click', importSave);
-    document.getElementById('btn-reset-confirm').addEventListener('click', () => {
+    document.getElementById('btn-export')?.addEventListener('click', exportSave);
+    document.getElementById('btn-import')?.addEventListener('click', importSave);
+    document.getElementById('btn-reset-confirm')?.addEventListener('click', () => {
         showModal('Réinitialisation', 'Êtes-vous sûr de vouloir réinitialiser toutes les données? Cette action est irréversible!', resetGame);
     });
     
     // Modal
-    document.getElementById('modal-close').addEventListener('click', hideModal);
-    document.getElementById('modal-cancel').addEventListener('click', hideModal);
-    elements.modalOverlay.addEventListener('click', (e) => {
+    document.getElementById('modal-close')?.addEventListener('click', hideModal);
+    document.getElementById('modal-cancel')?.addEventListener('click', hideModal);
+    elements.modalOverlay?.addEventListener('click', (e) => {
         if (e.target === elements.modalOverlay) hideModal();
     });
     
@@ -329,7 +362,7 @@ function setupEventListeners() {
 }
 
 function handleKeyboard(e) {
-    if (currentScreen !== 'game-screen') return;
+    if (currentScreen !== 'game-screen' || gameState.gameCompleted) return;
     
     switch(e.key) {
         case ' ':
@@ -367,8 +400,11 @@ function showScreen(screenId) {
     });
     
     // Afficher l'écran demandé
-    document.getElementById(screenId).classList.add('active');
-    currentScreen = screenId;
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.classList.add('active');
+        currentScreen = screenId;
+    }
     
     // Mettre à jour le contenu selon l'écran
     switch(screenId) {
@@ -383,6 +419,9 @@ function showScreen(screenId) {
             break;
         case 'game-screen':
             updateUI();
+            break;
+        case 'victory-screen':
+            updateVictoryDisplay();
             break;
     }
 }
@@ -415,6 +454,7 @@ function newGame() {
             totalPrestiges: 0,
             upgrades: {},
             achievements: preservedAchievements,
+            gameCompleted: false,
             stats: {
                 totalClicks: 0,
                 totalUpgradesPurchased: 0,
@@ -436,7 +476,11 @@ function newGame() {
 
 function continueGame() {
     if (gameState.lastSave) {
-        showScreen('game-screen');
+        if (gameState.gameCompleted) {
+            showScreen('victory-screen');
+        } else {
+            showScreen('game-screen');
+        }
         showToast('Partie chargée!', 'success');
     } else {
         showToast('Aucune sauvegarde trouvée!', 'warning');
@@ -445,7 +489,7 @@ function continueGame() {
 
 function updateContinueButton() {
     const continueBtn = document.getElementById('btn-continue');
-    if (gameState.lastSave) {
+    if (continueBtn && gameState.lastSave) {
         continueBtn.classList.remove('secondary');
         continueBtn.classList.add('primary');
     }
@@ -453,7 +497,9 @@ function updateContinueButton() {
 
 // Fonctions de jeu
 function produceNanobots() {
-    const energyCost = Math.max(1, 1 - (gameState.upgrades.energy_efficiency?.level || 0) * 0.05);
+    if (gameState.gameCompleted) return;
+    
+    const energyCost = Math.max(1, 1 - (gameState.upgrades.energy_efficiency?.level || 0) * 0.02);
     
     if (gameState.energy >= energyCost) {
         const production = 1 + getPrestigeBonus();
@@ -466,9 +512,12 @@ function produceNanobots() {
         
         // Animation du bouton
         const btn = document.getElementById('btn-produce');
-        btn.classList.add('clicked');
-        setTimeout(() => btn.classList.remove('clicked'), 200);
+        if (btn) {
+            btn.classList.add('clicked');
+            setTimeout(() => btn.classList.remove('clicked'), 200);
+        }
         
+        checkGameCompletion();
         checkAchievements();
         updateUI();
     } else {
@@ -477,7 +526,9 @@ function produceNanobots() {
 }
 
 function doResearch() {
-    const energyCost = Math.max(3, 5 - (gameState.upgrades.energy_efficiency?.level || 0) * 0.2);
+    if (gameState.gameCompleted) return;
+    
+    const energyCost = Math.max(3, 5 - (gameState.upgrades.energy_efficiency?.level || 0) * 0.1);
     
     if (gameState.energy >= energyCost) {
         const research = 1 + Math.floor(getPrestigeBonus() / 2);
@@ -488,8 +539,10 @@ function doResearch() {
         
         // Animation du bouton
         const btn = document.getElementById('btn-research');
-        btn.classList.add('clicked');
-        setTimeout(() => btn.classList.remove('clicked'), 200);
+        if (btn) {
+            btn.classList.add('clicked');
+            setTimeout(() => btn.classList.remove('clicked'), 200);
+        }
         
         checkAchievements();
         updateUI();
@@ -499,6 +552,8 @@ function doResearch() {
 }
 
 function buyUpgrade(upgradeId) {
+    if (gameState.gameCompleted) return;
+    
     const upgrade = CONFIG.upgrades.find(u => u.id === upgradeId);
     const currentLevel = gameState.upgrades[upgradeId].level;
     
@@ -541,7 +596,7 @@ function applyUpgradeEffects() {
     gameState.productionRate = 0;
     gameState.researchRate = 0;
     gameState.rareMaterialsRate = 0;
-    gameState.energyCapacity = 100 + (gameState.level * CONFIG.levels[gameState.level]?.energyBonus || 0);
+    gameState.energyCapacity = 100 + (gameState.level * (CONFIG.levels[gameState.level]?.energyBonus || 0));
     
     // Appliquer les effets des améliorations
     const upgrades = gameState.upgrades;
@@ -571,6 +626,12 @@ function applyUpgradeEffects() {
     gameState.researchRate *= neuralBonus;
     gameState.rareMaterialsRate *= neuralBonus;
     
+    // Cœur de singularité (bonus final)
+    const singularityBonus = 1 + ((upgrades.singularity_core?.level || 0) * 10);
+    gameState.productionRate *= singularityBonus;
+    gameState.researchRate *= singularityBonus;
+    gameState.rareMaterialsRate *= singularityBonus;
+    
     // Bonus de prestige
     const prestigeMultiplier = 1 + (gameState.prestigePoints * 0.1);
     gameState.productionRate *= prestigeMultiplier;
@@ -579,6 +640,8 @@ function applyUpgradeEffects() {
 }
 
 function doPrestige() {
+    if (gameState.gameCompleted) return;
+    
     const prestigeGain = calculatePrestigeGain();
     
     if (prestigeGain > 0) {
@@ -619,6 +682,33 @@ function getPrestigeBonus() {
     return gameState.prestigePoints * 0.1;
 }
 
+// Vérification de fin de jeu
+function checkGameCompletion() {
+    if (gameState.gameCompleted) return;
+    
+    const goal = CONFIG.FINAL_GOAL;
+    
+    if (gameState.nanobots >= goal.nanobots && gameState.level >= goal.level) {
+        gameState.gameCompleted = true;
+        
+        // Débloquer le succès de fin de jeu
+        if (!gameState.achievements.game_complete) {
+            gameState.achievements.game_complete = {
+                unlocked: true,
+                unlockedAt: Date.now()
+            };
+        }
+        
+        // Afficher l'écran de victoire
+        setTimeout(() => {
+            showScreen('victory-screen');
+            showToast('🎊 Félicitations! Vous avez atteint la Singularité!', 'success', 5000);
+        }, 1000);
+        
+        saveGame();
+    }
+}
+
 // Système de niveaux
 function updateLevel() {
     const currentLevel = gameState.level;
@@ -629,12 +719,17 @@ function updateLevel() {
         showToast(`Niveau ${gameState.level + 1} atteint: ${CONFIG.levels[gameState.level].name}!`, 'success');
         
         // Débloquer le prestige au niveau 3
-        if (gameState.level >= 3) {
+        if (gameState.level >= 3 && elements.prestigePanel) {
             elements.prestigePanel.style.display = 'block';
         }
         
         // Recalculer la capacité d'énergie
         applyUpgradeEffects();
+        
+        // Vérifier si c'est le niveau maximum
+        if (gameState.level >= 10) {
+            checkAchievements(); // Pour débloquer le succès de niveau max
+        }
     }
 }
 
@@ -668,6 +763,17 @@ function checkAchievements() {
                     break;
                 case 'materials_owned':
                     unlocked = gameState.rareMaterials >= achievement.requirement;
+                    break;
+                case 'level_reached':
+                    unlocked = gameState.level >= achievement.requirement;
+                    break;
+                case 'all_upgrades_maxed':
+                    unlocked = CONFIG.upgrades.every(upgrade => 
+                        gameState.upgrades[upgrade.id]?.level >= upgrade.maxLevel
+                    );
+                    break;
+                case 'game_completed':
+                    unlocked = gameState.gameCompleted;
                     break;
             }
             
@@ -715,10 +821,10 @@ function updateAchievementsCount() {
 
 // Boucle de jeu
 function gameLoop() {
-    if (currentScreen !== 'game-screen') return;
+    if (currentScreen !== 'game-screen' || gameState.gameCompleted) return;
     
     // Vérifier que le jeu est initialisé
-    if (!gameState || !gameState.nanobots === undefined) return;
+    if (!gameState || gameState.nanobots === undefined) return;
     
     const deltaTime = CONFIG.tickRate / 1000;
     
@@ -738,7 +844,10 @@ function gameLoop() {
     // Mise à jour du niveau
     updateLevel();
     
-    // Vérification des succès
+    // Vérification de fin de jeu
+    checkGameCompletion();
+    
+    // Vérification des succès (moins fréquent pour les performances)
     if (Math.random() < 0.1) { // 10% de chance à chaque tick
         checkAchievements();
     }
@@ -826,8 +935,17 @@ function updateUI() {
         elements.prestigeGain.textContent = formatNumber(prestigeGain);
         const prestigeBtn = document.getElementById('btn-prestige');
         if (prestigeBtn) {
-            prestigeBtn.disabled = prestigeGain === 0;
+            prestigeBtn.disabled = prestigeGain === 0 || gameState.gameCompleted;
         }
+    }
+    
+    // Désactiver les boutons si le jeu est terminé
+    if (gameState.gameCompleted) {
+        const gameButtons = ['btn-produce', 'btn-research', 'btn-prestige'];
+        gameButtons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) btn.disabled = true;
+        });
     }
     
     // Améliorations
@@ -862,12 +980,16 @@ function createUpgradeElement(upgrade) {
     div.className = 'upgrade-item';
     div.dataset.upgrade = upgrade.id;
     
-    if (canAfford && !maxLevel) {
+    if (canAfford && !maxLevel && !gameState.gameCompleted) {
         div.classList.add('affordable');
     }
     
     if (maxLevel) {
         div.classList.add('max-level');
+    }
+    
+    if (gameState.gameCompleted) {
+        div.classList.add('game-completed');
     }
     
     // Calculer l'effet actuel
@@ -877,7 +999,7 @@ function createUpgradeElement(upgrade) {
             effectText = `+${formatNumber(currentLevel)} nanobots/s`;
             break;
         case 'energy_efficiency':
-            effectText = `-${(currentLevel * 5)}% coût énergie`;
+            effectText = `-${(currentLevel * 2)}% coût énergie`;
             break;
         case 'auto_research':
             effectText = `+${formatNumber(currentLevel * 0.5)} recherche/s`;
@@ -894,6 +1016,9 @@ function createUpgradeElement(upgrade) {
         case 'neural_network':
             effectText = `+${currentLevel * 50}% efficacité`;
             break;
+        case 'singularity_core':
+            effectText = `×${1 + currentLevel * 10} production ultime`;
+            break;
     }
     
     div.innerHTML = `
@@ -903,12 +1028,12 @@ function createUpgradeElement(upgrade) {
         </div>
         <div class="upgrade-description">${upgrade.description}</div>
         <div class="upgrade-level">
-            <span class="upgrade-owned">Niveau: ${currentLevel}/${upgrade.maxLevel === Infinity ? '∞' : upgrade.maxLevel}</span>
+            <span class="upgrade-owned">Niveau: ${currentLevel}/${upgrade.maxLevel}</span>
             <span class="upgrade-effect">${effectText}</span>
         </div>
     `;
     
-    if (!maxLevel) {
+    if (!maxLevel && !gameState.gameCompleted) {
         div.addEventListener('click', () => buyUpgrade(upgrade.id));
     }
     
@@ -965,7 +1090,8 @@ function updateStatsDisplay() {
         { label: 'Prestiges effectués', value: formatNumber(gameState.totalPrestiges), icon: '✨' },
         { label: 'Niveau actuel', value: gameState.level + 1, icon: '🏆' },
         { label: 'Points de prestige', value: formatNumber(gameState.prestigePoints), icon: '⭐' },
-        { label: 'Temps de jeu', value: formatTime(gameState.stats.totalPlayTime), icon: '⏰' }
+        { label: 'Temps de jeu', value: formatTime(gameState.stats.totalPlayTime), icon: '⏰' },
+        { label: 'Jeu terminé', value: gameState.gameCompleted ? 'Oui' : 'Non', icon: '🎊' }
     ];
     
     elements.statsContainer.innerHTML = '';
@@ -981,9 +1107,47 @@ function updateStatsDisplay() {
 }
 
 function updateSettingsDisplay() {
-    document.getElementById('auto-save').checked = gameState.settings.autoSave;
-    document.getElementById('notifications').checked = gameState.settings.notifications;
-    document.getElementById('particles-toggle').checked = gameState.settings.particles;
+    const autoSaveCheckbox = document.getElementById('auto-save');
+    const notificationsCheckbox = document.getElementById('notifications');
+    const particlesCheckbox = document.getElementById('particles-toggle');
+    
+    if (autoSaveCheckbox) autoSaveCheckbox.checked = gameState.settings.autoSave;
+    if (notificationsCheckbox) notificationsCheckbox.checked = gameState.settings.notifications;
+    if (particlesCheckbox) particlesCheckbox.checked = gameState.settings.particles;
+}
+
+function updateVictoryDisplay() {
+    const victoryStats = document.getElementById('victory-stats');
+    if (!victoryStats) return;
+    
+    const completionTime = formatTime(gameState.stats.totalPlayTime);
+    const totalNanobots = formatNumber(gameState.totalNanobotsProduced);
+    const totalClicks = formatNumber(gameState.stats.totalClicks);
+    const totalUpgrades = formatNumber(gameState.stats.totalUpgradesPurchased);
+    const prestigeCount = formatNumber(gameState.totalPrestiges);
+    
+    victoryStats.innerHTML = `
+        <div class="victory-stat">
+            <div class="victory-stat-value">${completionTime}</div>
+            <div class="victory-stat-label">⏰ Temps total</div>
+        </div>
+        <div class="victory-stat">
+            <div class="victory-stat-value">${totalNanobots}</div>
+            <div class="victory-stat-label">🤖 Nanobots produits</div>
+        </div>
+        <div class="victory-stat">
+            <div class="victory-stat-value">${totalClicks}</div>
+            <div class="victory-stat-label">👆 Clics effectués</div>
+        </div>
+        <div class="victory-stat">
+            <div class="victory-stat-value">${totalUpgrades}</div>
+            <div class="victory-stat-label">⬆️ Améliorations achetées</div>
+        </div>
+        <div class="victory-stat">
+            <div class="victory-stat-value">${prestigeCount}</div>
+            <div class="victory-stat-label">✨ Prestiges effectués</div>
+        </div>
+    `;
 }
 
 // Système de particules
@@ -1077,21 +1241,26 @@ function showToast(message, type = 'info', duration = 3000) {
 
 // Système de modal
 function showModal(title, message, onConfirm) {
+    if (!elements.modalTitle || !elements.modalMessage || !elements.modalOverlay) return;
+    
     elements.modalTitle.textContent = title;
     elements.modalMessage.textContent = message;
     elements.modalOverlay.classList.add('active');
     
     // Nettoyer les anciens événements
-    elements.modalConfirm.onclick = null;
-    
-    elements.modalConfirm.onclick = () => {
-        hideModal();
-        if (onConfirm) onConfirm();
-    };
+    if (elements.modalConfirm) {
+        elements.modalConfirm.onclick = null;
+        elements.modalConfirm.onclick = () => {
+            hideModal();
+            if (onConfirm) onConfirm();
+        };
+    }
 }
 
 function hideModal() {
-    elements.modalOverlay.classList.remove('active');
+    if (elements.modalOverlay) {
+        elements.modalOverlay.classList.remove('active');
+    }
 }
 
 // Sauvegarde et chargement
@@ -1151,6 +1320,11 @@ function loadGame() {
             // Assurer que les succès existent
             if (!gameState.achievements) {
                 gameState.achievements = {};
+            }
+            
+            // Assurer que gameCompleted existe
+            if (gameState.gameCompleted === undefined) {
+                gameState.gameCompleted = false;
             }
             
             applyUpgradeEffects();

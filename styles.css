@@ -663,6 +663,17 @@ body {
     transform: none;
 }
 
+/* Styles pour jeu terminé */
+.upgrade-item.game-completed {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.upgrade-item.game-completed:hover {
+    transform: none;
+    border-color: var(--border-color);
+}
+
 .prestige-icon {
     font-size: 1.5rem;
 }
@@ -855,6 +866,148 @@ body {
 
 .setting-btn.danger:hover {
     background: rgba(255, 82, 82, 0.1);
+}
+
+/* Écran de victoire */
+.victory-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.victory-content {
+    max-width: 600px;
+    text-align: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 3rem;
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-lg);
+}
+
+.victory-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: pulse 2s infinite;
+}
+
+.victory-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--warning-color), var(--primary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+}
+
+.victory-message {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.victory-achievement {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--warning-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.victory-achievement .achievement-icon {
+    font-size: 2rem;
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--warning-color);
+    color: var(--bg-primary);
+    border-radius: var(--radius-sm);
+}
+
+.victory-achievement .achievement-info {
+    flex: 1;
+    text-align: left;
+}
+
+.victory-achievement .achievement-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.victory-achievement .achievement-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.victory-stats-container {
+    margin-bottom: 2rem;
+}
+
+.victory-stats-container h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.victory-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.victory-stat {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.victory-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.victory-stat-label {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.victory-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.victory-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    border-radius: var(--radius-lg);
+    color: var(--bg-primary);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.victory-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
 }
 
 /* Notifications toast */
@@ -1068,6 +1221,18 @@ body {
     
     .toast {
         max-width: none;
+    }
+    
+    .victory-content {
+        padding: 2rem;
+    }
+    
+    .victory-title {
+        font-size: 2rem;
+    }
+    
+    .victory-stats {
+        grid-template-columns: 1fr;
     }
 }
 
