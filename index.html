@@ -3,478 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nanobot Empire - Jeu Incrémental</title>
-    <style>
-        /* Variables CSS */
-        :root {
-            --primary-color: #00d2ff;
-            --secondary-color: #64ffda;
-            --accent-color: #ff6b6b;
-            --success-color: #4ecdc4;
-            --warning-color: #ffe66d;
-            --bg-dark: #0a0d14;
-            --bg-card: rgba(15, 25, 40, 0.95);
-            --text-light: #e0e0e0;
-            --text-muted: #a0a0a0;
-            --border-color: #333;
-        }
-
-        /* Styles de base */
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
-            color: var(--text-light);
-            min-height: 100vh;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
-        }
-
-        .subtitle {
-            text-align: center;
-            color: var(--text-muted);
-            margin-bottom: 30px;
-        }
-        
-        /* Menu */
-        .menu {
-            background: var(--bg-card);
-            border-radius: 15px;
-            padding: 30px;
-            margin-top: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 210, 255, 0.2);
-        }
-        
-        .menu-title {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .menu-buttons {
-            display: grid;
-            gap: 15px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        
-        .button {
-            background: linear-gradient(45deg, #333, #444);
-            color: white;
-            border: 2px solid var(--primary-color);
-            border-radius: 10px;
-            padding: 15px 20px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-            font-weight: 600;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .button:hover {
-            background: linear-gradient(45deg, #444, #555);
-            border-color: var(--secondary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.3);
-        }
-
-        .button:active {
-            transform: translateY(0);
-        }
-
-        .button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* Interface de jeu */
-        .game {
-            display: none;
-        }
-
-        .game-header {
-            background: var(--bg-card);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            text-align: center;
-            border: 1px solid rgba(0, 210, 255, 0.2);
-        }
-
-        .level-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .level-badge {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .prestige-points {
-            color: var(--warning-color);
-            font-weight: bold;
-        }
-
-        .game-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .game-content {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .panel {
-            background: var(--bg-card);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(0, 210, 255, 0.2);
-        }
-
-        .panel h3 {
-            color: var(--primary-color);
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .resource {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-        }
-
-        .resource-value {
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-
-        .upgrade-item {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .upgrade-item:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-        }
-
-        .upgrade-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .upgrade-name {
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-
-        .upgrade-cost {
-            color: var(--warning-color);
-            font-weight: bold;
-        }
-
-        .upgrade-description {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-        }
-
-        .upgrade-owned {
-            color: var(--success-color);
-            font-size: 0.9rem;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            transition: width 0.3s ease;
-        }
-
-        .achievements {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .achievement {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .achievement.unlocked {
-            border-color: var(--success-color);
-            background: rgba(78, 205, 196, 0.1);
-        }
-
-        .achievement-icon {
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .controls .button {
-            flex: 1;
-            min-width: 150px;
-        }
-        
-        /* Notifications */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--bg-card);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            display: none;
-            border-left: 4px solid var(--primary-color);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            max-width: 300px;
-        }
-
-        .notification.success {
-            border-left-color: var(--success-color);
-        }
-
-        .notification.warning {
-            border-left-color: var(--warning-color);
-        }
-
-        .notification.error {
-            border-left-color: var(--accent-color);
-        }
-
-        /* Animations */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        /* Statistiques */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-        }
-
-        .stat-item {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .stat-label {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-    </style>
+    <title>Nanobot Empire V2 - Jeu Incrémental</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🤖 Nanobot Empire</h1>
-        <p class="subtitle">Construisez votre empire technologique</p>
-        
-        <!-- Menu -->
-        <div id="menu" class="menu fade-in">
-            <div class="menu-title">
-                <h2>Menu Principal</h2>
-                <p>Jeu incrémental multi-niveaux</p>
+    <!-- Particules d'arrière-plan -->
+    <div id="particles"></div>
+    
+    <!-- Menu principal -->
+    <div id="main-menu" class="screen active">
+        <div class="menu-container">
+            <div class="logo-section">
+                <div class="logo">🤖</div>
+                <h1 class="game-title">Nanobot Empire</h1>
+                <p class="game-subtitle">Construisez votre empire technologique</p>
+                <div class="version-badge">V2.0</div>
             </div>
+            
             <div class="menu-buttons">
-                <button id="btn-new-game" class="button">🚀 Nouvelle Partie</button>
-                <button id="btn-continue" class="button">📁 Continuer</button>
-                <button id="btn-achievements" class="button">🏆 Succès</button>
-                <button id="btn-stats" class="button">📊 Statistiques</button>
-                <button id="btn-reset" class="button">🔄 Réinitialiser</button>
+                <button id="btn-new-game" class="menu-btn primary">
+                    <span class="btn-icon">🚀</span>
+                    <span class="btn-text">Nouvelle Partie</span>
+                </button>
+                <button id="btn-continue" class="menu-btn secondary">
+                    <span class="btn-icon">📁</span>
+                    <span class="btn-text">Continuer</span>
+                </button>
+                <button id="btn-achievements" class="menu-btn">
+                    <span class="btn-icon">🏆</span>
+                    <span class="btn-text">Succès</span>
+                    <span class="btn-badge" id="achievements-count">0</span>
+                </button>
+                <button id="btn-stats" class="menu-btn">
+                    <span class="btn-icon">📊</span>
+                    <span class="btn-text">Statistiques</span>
+                </button>
+                <button id="btn-settings" class="menu-btn">
+                    <span class="btn-icon">⚙️</span>
+                    <span class="btn-text">Paramètres</span>
+                </button>
             </div>
         </div>
-        
-        <!-- Interface de jeu -->
-        <div id="game" class="game">
-            <div class="game-header">
+    </div>
+
+    <!-- Interface de jeu -->
+    <div id="game-screen" class="screen">
+        <!-- Header du jeu -->
+        <header class="game-header">
+            <div class="header-left">
+                <button id="btn-menu" class="icon-btn">
+                    <span>🏠</span>
+                </button>
                 <div class="level-info">
                     <div class="level-badge" id="level-display">Niveau 1</div>
-                    <div class="prestige-points">⭐ Points de Prestige: <span id="prestige-points">0</span></div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="level-progress"></div>
-                </div>
-                <div id="level-description">Commencez votre empire technologique</div>
-            </div>
-
-            <div class="game-content">
-                <!-- Ressources -->
-                <div class="panel">
-                    <h3>📊 Ressources</h3>
-                    
-                    <div class="resource">
-                        <span>🤖 Nanobots:</span>
-                        <span class="resource-value" id="nanobots">0</span>
-                    </div>
-                    
-                    <div class="resource">
-                        <span>⚡ Énergie:</span>
-                        <span class="resource-value" id="energy">100</span>
-                    </div>
-                    
-                    <div class="resource">
-                        <span>🔬 Recherche:</span>
-                        <span class="resource-value" id="research">0</span>
-                    </div>
-                    
-                    <div class="resource">
-                        <span>💎 Matériaux rares:</span>
-                        <span class="resource-value" id="rare-materials">0</span>
-                    </div>
-                    
-                    <div class="resource">
-                        <span>📈 Production/sec:</span>
-                        <span class="resource-value" id="per-second">0</span>
-                    </div>
-
-                    <div class="controls">
-                        <button id="btn-produce" class="button">🔨 Produire</button>
-                        <button id="btn-research" class="button">🔬 Rechercher</button>
-                    </div>
-                </div>
-
-                <!-- Améliorations -->
-                <div class="panel">
-                    <h3>⬆️ Améliorations</h3>
-                    <div id="upgrades-container">
-                        <!-- Les améliorations seront générées dynamiquement -->
+                    <div class="level-progress-container">
+                        <div class="level-progress-bar">
+                            <div class="level-progress-fill" id="level-progress"></div>
+                        </div>
+                        <span class="level-progress-text" id="level-progress-text">0%</span>
                     </div>
                 </div>
             </div>
+            
+            <div class="header-right">
+                <div class="prestige-info">
+                    <span class="prestige-icon">⭐</span>
+                    <span id="prestige-points">0</span>
+                </div>
+                <button id="btn-save" class="icon-btn save-btn">
+                    <span>💾</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Contenu principal -->
+        <main class="game-main">
+            <!-- Panneau des ressources -->
+            <section class="resources-panel">
+                <h2 class="panel-title">
+                    <span class="title-icon">📊</span>
+                    Ressources
+                </h2>
+                
+                <div class="resources-grid">
+                    <div class="resource-card primary" data-resource="nanobots">
+                        <div class="resource-icon">🤖</div>
+                        <div class="resource-info">
+                            <div class="resource-name">Nanobots</div>
+                            <div class="resource-value" id="nanobots">0</div>
+                            <div class="resource-rate">+<span id="nanobots-rate">0</span>/s</div>
+                        </div>
+                        <button class="resource-action" id="btn-produce">
+                            <span>🔨</span>
+                        </button>
+                    </div>
+                    
+                    <div class="resource-card" data-resource="energy">
+                        <div class="resource-icon">⚡</div>
+                        <div class="resource-info">
+                            <div class="resource-name">Énergie</div>
+                            <div class="resource-value" id="energy">100</div>
+                            <div class="resource-capacity">/ <span id="energy-max">100</span></div>
+                        </div>
+                        <div class="energy-bar">
+                            <div class="energy-fill" id="energy-fill"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="resource-card" data-resource="research">
+                        <div class="resource-icon">🔬</div>
+                        <div class="resource-info">
+                            <div class="resource-name">Recherche</div>
+                            <div class="resource-value" id="research">0</div>
+                            <div class="resource-rate">+<span id="research-rate">0</span>/s</div>
+                        </div>
+                        <button class="resource-action" id="btn-research">
+                            <span>🧪</span>
+                        </button>
+                    </div>
+                    
+                    <div class="resource-card" data-resource="materials">
+                        <div class="resource-icon">💎</div>
+                        <div class="resource-info">
+                            <div class="resource-name">Matériaux</div>
+                            <div class="resource-value" id="rare-materials">0</div>
+                            <div class="resource-rate">+<span id="materials-rate">0</span>/s</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panneau des améliorations -->
+            <section class="upgrades-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span class="title-icon">⬆️</span>
+                        Améliorations
+                    </h2>
+                    <div class="upgrade-filters">
+                        <button class="filter-btn active" data-filter="all">Toutes</button>
+                        <button class="filter-btn" data-filter="production">Production</button>
+                        <button class="filter-btn" data-filter="efficiency">Efficacité</button>
+                        <button class="filter-btn" data-filter="special">Spécial</button>
+                    </div>
+                </div>
+                
+                <div class="upgrades-container" id="upgrades-container">
+                    <!-- Les améliorations seront générées dynamiquement -->
+                </div>
+            </section>
 
             <!-- Panneau de prestige -->
-            <div class="panel" id="prestige-panel" style="display: none; margin-top: 20px;">
-                <h3>⭐ Prestige</h3>
-                <p>Recommencez avec des bonus permanents!</p>
-                <div class="controls">
-                    <button id="btn-prestige" class="button">✨ Prestige (+<span id="prestige-gain">0</span> points)</button>
+            <section class="prestige-panel" id="prestige-panel" style="display: none;">
+                <h2 class="panel-title">
+                    <span class="title-icon">⭐</span>
+                    Prestige
+                </h2>
+                
+                <div class="prestige-content">
+                    <div class="prestige-description">
+                        <p>Recommencez votre empire avec des bonus permanents!</p>
+                        <div class="prestige-benefits">
+                            <div class="benefit">
+                                <span class="benefit-icon">🚀</span>
+                                <span>Production multipliée</span>
+                            </div>
+                            <div class="benefit">
+                                <span class="benefit-icon">⚡</span>
+                                <span>Énergie bonus</span>
+                            </div>
+                            <div class="benefit">
+                                <span class="benefit-icon">🔬</span>
+                                <span>Recherche accélérée</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="btn-prestige" class="prestige-btn">
+                        <span class="prestige-icon">✨</span>
+                        <span class="prestige-text">Prestige</span>
+                        <span class="prestige-gain">+<span id="prestige-gain">0</span> points</span>
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Écran des succès -->
+    <div id="achievements-screen" class="screen">
+        <header class="screen-header">
+            <button id="btn-back-achievements" class="back-btn">
+                <span>←</span>
+                <span>Retour</span>
+            </button>
+            <h1>🏆 Succès</h1>
+            <div class="achievements-progress">
+                <span id="achievements-unlocked">0</span>/<span id="achievements-total">0</span>
+            </div>
+        </header>
+        
+        <div class="achievements-grid" id="achievements-container">
+            <!-- Les succès seront générés dynamiquement -->
+        </div>
+    </div>
+
+    <!-- Écran des statistiques -->
+    <div id="stats-screen" class="screen">
+        <header class="screen-header">
+            <button id="btn-back-stats" class="back-btn">
+                <span>←</span>
+                <span>Retour</span>
+            </button>
+            <h1>📊 Statistiques</h1>
+        </header>
+        
+        <div class="stats-grid" id="stats-container">
+            <!-- Les statistiques seront générées dynamiquement -->
+        </div>
+    </div>
+
+    <!-- Écran des paramètres -->
+    <div id="settings-screen" class="screen">
+        <header class="screen-header">
+            <button id="btn-back-settings" class="back-btn">
+                <span>←</span>
+                <span>Retour</span>
+            </button>
+            <h1>⚙️ Paramètres</h1>
+        </header>
+        
+        <div class="settings-content">
+            <div class="setting-group">
+                <h3>Interface</h3>
+                <div class="setting-item">
+                    <label for="auto-save">Sauvegarde automatique</label>
+                    <input type="checkbox" id="auto-save" checked>
+                </div>
+                <div class="setting-item">
+                    <label for="notifications">Notifications</label>
+                    <input type="checkbox" id="notifications" checked>
+                </div>
+                <div class="setting-item">
+                    <label for="particles">Effets de particules</label>
+                    <input type="checkbox" id="particles-toggle" checked>
                 </div>
             </div>
-
-            <div class="controls">
-                <button id="btn-save" class="button">💾 Sauvegarder</button>
-                <button id="btn-back" class="button">🏠 Menu</button>
+            
+            <div class="setting-group">
+                <h3>Données</h3>
+                <button id="btn-export" class="setting-btn">📤 Exporter la sauvegarde</button>
+                <button id="btn-import" class="setting-btn">📥 Importer la sauvegarde</button>
+                <button id="btn-reset-confirm" class="setting-btn danger">🔄 Réinitialiser le jeu</button>
             </div>
         </div>
-
-        <!-- Panneau des succès -->
-        <div id="achievements-panel" class="menu" style="display: none;">
-            <div class="menu-title">
-                <h2>🏆 Succès</h2>
-            </div>
-            <div class="achievements" id="achievements-container">
-                <!-- Les succès seront générés dynamiquement -->
-            </div>
-            <div class="controls">
-                <button id="btn-back-achievements" class="button">🏠 Retour</button>
-            </div>
-        </div>
-
-        <!-- Panneau des statistiques -->
-        <div id="stats-panel" class="menu" style="display: none;">
-            <div class="menu-title">
-                <h2>📊 Statistiques</h2>
-            </div>
-            <div class="stats-grid" id="stats-container">
-                <!-- Les statistiques seront générées dynamiquement -->
-            </div>
-            <div class="controls">
-                <button id="btn-back-stats" class="button">🏠 Retour</button>
-            </div>
-        </div>
-        
-        <!-- Notification -->
-        <div id="notification" class="notification"></div>
     </div>
-    
-    <script src="game.js"></script>
+
+    <!-- Notifications toast -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modal de confirmation -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Confirmation</h3>
+                <button id="modal-close" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">Êtes-vous sûr?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel" class="modal-btn secondary">Annuler</button>
+                <button id="modal-confirm" class="modal-btn primary">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game-v2.js"></script>
 </body>
 </html>
