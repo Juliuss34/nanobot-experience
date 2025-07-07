@@ -1,0 +1,15 @@
+{
+  "name": "nanobot-empire",
+  "version": "1.0.0",
+  "description": "Nanobot Empire V2 - Incremental Game",
+  "main": "game-v2.js",
+  "scripts": {
+    "dev": "http-server ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
