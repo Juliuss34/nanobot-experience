@@ -3,132 +3,471 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nanobot Experience Simplifiée</title>
+    <title>Nanobot Empire - Jeu Incrémental</title>
     <style>
+        /* Variables CSS */
+        :root {
+            --primary-color: #00d2ff;
+            --secondary-color: #64ffda;
+            --accent-color: #ff6b6b;
+            --success-color: #4ecdc4;
+            --warning-color: #ffe66d;
+            --bg-dark: #0a0d14;
+            --bg-card: rgba(15, 25, 40, 0.95);
+            --text-light: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --border-color: #333;
+        }
+
         /* Styles de base */
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #0a0d14;
-            color: #e0e0e0;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+            color: var(--text-light);
+            min-height: 100vh;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
         
         h1 {
-            color: #00d2ff;
+            color: var(--primary-color);
             text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 30px;
         }
         
         /* Menu */
         .menu {
-            background-color: rgba(15, 25, 40, 0.9);
-            border-radius: 10px;
-            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 15px;
+            padding: 30px;
             margin-top: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 210, 255, 0.2);
         }
         
         .menu-title {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
         
         .menu-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            display: grid;
+            gap: 15px;
+            max-width: 400px;
+            margin: 0 auto;
         }
         
         .button {
-            background-color: #333;
+            background: linear-gradient(45deg, #333, #444);
             color: white;
-            border: 1px solid #00d2ff;
-            border-radius: 5px;
-            padding: 10px 15px;
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 15px 20px;
             cursor: pointer;
             text-align: center;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
         }
         
         .button:hover {
-            background-color: #444;
-            border-color: #64ffda;
+            background: linear-gradient(45deg, #444, #555);
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
         
-        /* Jeu */
+        /* Interface de jeu */
         .game {
             display: none;
-            background-color: rgba(15, 25, 40, 0.9);
-            border-radius: 10px;
+        }
+
+        .game-header {
+            background: var(--bg-card);
+            border-radius: 15px;
             padding: 20px;
-            margin-top: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid rgba(0, 210, 255, 0.2);
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .level-badge {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .prestige-points {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        .game-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .game-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--bg-card);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(0, 210, 255, 0.2);
+        }
+
+        .panel h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
         }
         
         .resource {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .resource-value {
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .upgrade-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .upgrade-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .upgrade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 10px;
         }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
+
+        .upgrade-name {
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .upgrade-cost {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        .upgrade-description {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .upgrade-owned {
+            color: var(--success-color);
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            transition: width 0.3s ease;
+        }
+
+        .achievements {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             margin-top: 20px;
         }
+
+        .achievement {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .achievement.unlocked {
+            border-color: var(--success-color);
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        .achievement-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .controls .button {
+            flex: 1;
+            min-width: 150px;
+        }
         
-        /* Notification */
+        /* Notifications */
         .notification {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
-            background-color: #333;
+            background: var(--bg-card);
             color: white;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 15px 20px;
+            border-radius: 10px;
             display: none;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .notification.success {
+            border-left-color: var(--success-color);
+        }
+
+        .notification.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .notification.error {
+            border-left-color: var(--accent-color);
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Statistiques */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Nanobot Experience Simplifiée</h1>
+        <h1>🤖 Nanobot Empire</h1>
+        <p class="subtitle">Construisez votre empire technologique</p>
         
         <!-- Menu -->
-        <div id="menu" class="menu">
+        <div id="menu" class="menu fade-in">
             <div class="menu-title">
                 <h2>Menu Principal</h2>
-                <p>Version simplifiée pour le test</p>
+                <p>Jeu incrémental multi-niveaux</p>
             </div>
             <div class="menu-buttons">
-                <button id="btn-new-game" class="button">Nouvelle Partie</button>
-                <button id="btn-continue" class="button">Continuer</button>
-                <button id="btn-reset" class="button">Réinitialiser les données</button>
+                <button id="btn-new-game" class="button">🚀 Nouvelle Partie</button>
+                <button id="btn-continue" class="button">📁 Continuer</button>
+                <button id="btn-achievements" class="button">🏆 Succès</button>
+                <button id="btn-stats" class="button">📊 Statistiques</button>
+                <button id="btn-reset" class="button">🔄 Réinitialiser</button>
             </div>
         </div>
         
-        <!-- Jeu -->
+        <!-- Interface de jeu -->
         <div id="game" class="game">
-            <h2>Interface de Jeu</h2>
-            
-            <div class="resource">
-                <span>Nanobots:</span>
-                <span id="nanobots">0</span>
+            <div class="game-header">
+                <div class="level-info">
+                    <div class="level-badge" id="level-display">Niveau 1</div>
+                    <div class="prestige-points">⭐ Points de Prestige: <span id="prestige-points">0</span></div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="level-progress"></div>
+                </div>
+                <div id="level-description">Commencez votre empire technologique</div>
             </div>
-            
-            <div class="resource">
-                <span>Production par seconde:</span>
-                <span id="per-second">0</span>
+
+            <div class="game-content">
+                <!-- Ressources -->
+                <div class="panel">
+                    <h3>📊 Ressources</h3>
+                    
+                    <div class="resource">
+                        <span>🤖 Nanobots:</span>
+                        <span class="resource-value" id="nanobots">0</span>
+                    </div>
+                    
+                    <div class="resource">
+                        <span>⚡ Énergie:</span>
+                        <span class="resource-value" id="energy">100</span>
+                    </div>
+                    
+                    <div class="resource">
+                        <span>🔬 Recherche:</span>
+                        <span class="resource-value" id="research">0</span>
+                    </div>
+                    
+                    <div class="resource">
+                        <span>💎 Matériaux rares:</span>
+                        <span class="resource-value" id="rare-materials">0</span>
+                    </div>
+                    
+                    <div class="resource">
+                        <span>📈 Production/sec:</span>
+                        <span class="resource-value" id="per-second">0</span>
+                    </div>
+
+                    <div class="controls">
+                        <button id="btn-produce" class="button">🔨 Produire</button>
+                        <button id="btn-research" class="button">🔬 Rechercher</button>
+                    </div>
+                </div>
+
+                <!-- Améliorations -->
+                <div class="panel">
+                    <h3>⬆️ Améliorations</h3>
+                    <div id="upgrades-container">
+                        <!-- Les améliorations seront générées dynamiquement -->
+                    </div>
+                </div>
             </div>
-            
+
+            <!-- Panneau de prestige -->
+            <div class="panel" id="prestige-panel" style="display: none; margin-top: 20px;">
+                <h3>⭐ Prestige</h3>
+                <p>Recommencez avec des bonus permanents!</p>
+                <div class="controls">
+                    <button id="btn-prestige" class="button">✨ Prestige (+<span id="prestige-gain">0</span> points)</button>
+                </div>
+            </div>
+
             <div class="controls">
-                <button id="btn-produce" class="button">Produire des nanobots</button>
-                <button id="btn-save" class="button">Sauvegarder</button>
-                <button id="btn-back" class="button">Retour au menu</button>
+                <button id="btn-save" class="button">💾 Sauvegarder</button>
+                <button id="btn-back" class="button">🏠 Menu</button>
+            </div>
+        </div>
+
+        <!-- Panneau des succès -->
+        <div id="achievements-panel" class="menu" style="display: none;">
+            <div class="menu-title">
+                <h2>🏆 Succès</h2>
+            </div>
+            <div class="achievements" id="achievements-container">
+                <!-- Les succès seront générés dynamiquement -->
+            </div>
+            <div class="controls">
+                <button id="btn-back-achievements" class="button">🏠 Retour</button>
+            </div>
+        </div>
+
+        <!-- Panneau des statistiques -->
+        <div id="stats-panel" class="menu" style="display: none;">
+            <div class="menu-title">
+                <h2>📊 Statistiques</h2>
+            </div>
+            <div class="stats-grid" id="stats-container">
+                <!-- Les statistiques seront générées dynamiquement -->
+            </div>
+            <div class="controls">
+                <button id="btn-back-stats" class="button">🏠 Retour</button>
             </div>
         </div>
         
@@ -136,166 +475,6 @@
         <div id="notification" class="notification"></div>
     </div>
     
-    <script>
-        // État du jeu
-        let game = {
-            nanobots: 0,
-            perSecond: 0,
-            lastSave: null
-        };
-        
-        // Éléments DOM
-        const elements = {
-            menu: document.getElementById('menu'),
-            game: document.getElementById('game'),
-            nanobots: document.getElementById('nanobots'),
-            perSecond: document.getElementById('per-second'),
-            notification: document.getElementById('notification')
-        };
-        
-        // Initialisation
-        function init() {
-            console.log("Initialisation de l'application");
-            
-            // Charger les données sauvegardées
-            loadGame();
-            
-            // Configurer les boutons du menu
-            document.getElementById('btn-new-game').addEventListener('click', newGame);
-            document.getElementById('btn-continue').addEventListener('click', continueGame);
-            document.getElementById('btn-reset').addEventListener('click', resetGame);
-            
-            // Configurer les boutons du jeu
-            document.getElementById('btn-produce').addEventListener('click', produceNanobots);
-            document.getElementById('btn-save').addEventListener('click', saveGame);
-            document.getElementById('btn-back').addEventListener('click', backToMenu);
-            
-            console.log("Initialisation terminée");
-        }
-        
-        // Fonctions du menu
-        function newGame() {
-            console.log("Nouvelle partie");
-            
-            // Réinitialiser l'état du jeu
-            game = {
-                nanobots: 0,
-                perSecond: 0,
-                lastSave: null
-            };
-            
-            // Mettre à jour l'interface
-            updateUI();
-            
-            // Afficher le jeu
-            elements.menu.style.display = 'none';
-            elements.game.style.display = 'block';
-            
-            showNotification("Nouvelle partie démarrée!");
-        }
-        
-        function continueGame() {
-            console.log("Continuer la partie");
-            
-            if (game.lastSave) {
-                // Afficher le jeu
-                elements.menu.style.display = 'none';
-                elements.game.style.display = 'block';
-                
-                showNotification("Partie chargée!");
-            } else {
-                showNotification("Aucune sauvegarde trouvée!");
-            }
-        }
-        
-        function resetGame() {
-            console.log("Réinitialisation des données");
-            
-            if (confirm("Êtes-vous sûr de vouloir réinitialiser toutes les données? Cette action est irréversible.")) {
-                localStorage.removeItem('nanobotGameSave');
-                game = {
-                    nanobots: 0,
-                    perSecond: 0,
-                    lastSave: null
-                };
-                updateUI();
-                showNotification("Données réinitialisées!");
-            }
-        }
-        
-        // Fonctions du jeu
-        function produceNanobots() {
-            console.log("Production de nanobots");
-            
-            game.nanobots += 1;
-            if (game.perSecond < 1) game.perSecond += 0.1;
-            
-            updateUI();
-        }
-        
-        function saveGame() {
-            console.log("Sauvegarde du jeu");
-            
-            game.lastSave = new Date().toISOString();
-            localStorage.setItem('nanobotGameSave', JSON.stringify(game));
-            
-            showNotification("Partie sauvegardée!");
-        }
-        
-        function loadGame() {
-            console.log("Chargement du jeu");
-            
-            const savedGame = localStorage.getItem('nanobotGameSave');
-            if (savedGame) {
-                try {
-                    game = JSON.parse(savedGame);
-                    updateUI();
-                    console.log("Sauvegarde chargée avec succès");
-                } catch (error) {
-                    console.error("Erreur lors du chargement de la sauvegarde:", error);
-                }
-            } else {
-                console.log("Aucune sauvegarde trouvée");
-            }
-        }
-        
-        function backToMenu() {
-            console.log("Retour au menu");
-            
-            // Sauvegarder automatiquement
-            saveGame();
-            
-            // Afficher le menu
-            elements.game.style.display = 'none';
-            elements.menu.style.display = 'block';
-        }
-        
-        // Fonctions utilitaires
-        function updateUI() {
-            elements.nanobots.textContent = game.nanobots.toFixed(0);
-            elements.perSecond.textContent = game.perSecond.toFixed(1);
-        }
-        
-        function showNotification(message) {
-            elements.notification.textContent = message;
-            elements.notification.style.display = 'block';
-            
-            setTimeout(() => {
-                elements.notification.style.display = 'none';
-            }, 3000);
-        }
-        
-        // Boucle de jeu
-        function gameLoop() {
-            game.nanobots += game.perSecond / 10;
-            updateUI();
-        }
-        
-        // Démarrer la boucle de jeu
-        setInterval(gameLoop, 100);
-        
-        // Initialiser l'application au chargement
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+    <script src="game.js"></script>
 </body>
 </html>
